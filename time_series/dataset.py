@@ -1,29 +1,29 @@
-from pathlib import Path
+import numpy as np
+from tqdm import tqdm
 
+from pathlib import Path
 from loguru import logger
 from tqdm import tqdm
 import typer
+import csv
 
-from time_series.config import PROCESSED_DATA_DIR, RAW_DATA_DIR
+from time_series.config import PROCESSED_DATA_DIR, RAW_DATA_DIR, generate_datasets
+from time_series.data_generators.lorenz_generator import generate_lorenz_curve
 
 app = typer.Typer()
 
-
 @app.command()
-def main(
-    # ---- REPLACE DEFAULT PATHS AS APPROPRIATE ----
-    input_path: Path = RAW_DATA_DIR / "dataset.csv",
-    output_path: Path = PROCESSED_DATA_DIR / "dataset.csv",
-    # ----------------------------------------------
-):
-    # ---- REPLACE THIS WITH YOUR OWN CODE ----
-    logger.info("Processing dataset...")
-    for i in tqdm(range(10), total=10):
-        if i == 5:
-            logger.info("Something happened for iteration 5.")
-    logger.success("Processing dataset complete.")
-    # -----------------------------------------
+def main():
+    for dataset_name, dataset_kwargs in generate_datasets.items():
+        if dataset_kwargs["generator"] == "lorenz":
+            logger.info(f"Generating Lorenz Curve {dataset_name}: {**dataset_kwargs['params']}")
+            time, data = generate_lorenz_curve(**dataset_kwargs["params"])
 
+            with open(f"{RAW_DATA_DIR}/{dataset_name}.csv", "w") as file:
+                writer = csv.writer(file)
+                writer.writerow(["t", "x", "y", "z"])
+                for t, x in zip(time, data):
+                    writer.writerow([t, *x])
 
 if __name__ == "__main__":
     app()

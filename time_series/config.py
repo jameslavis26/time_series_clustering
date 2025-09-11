@@ -1,3 +1,5 @@
+import numpy as np
+
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -20,6 +22,12 @@ MODELS_DIR = PROJ_ROOT / "models"
 
 REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
+
+# Generate datasets
+generate_datasets = dict(
+    lorenz_curve_1 = dict(generator="lorenz", params=dict(noise_mean=[0,0,0], noise_cov=0.01*np.eye(3), x0 = [1,1,1], T = 1, dt=1e-2, rho=28, sigma=12, beta=8/3))
+)
+
 
 # If tqdm is installed, configure loguru with tqdm.write
 # https://github.com/Delgan/loguru/issues/135
