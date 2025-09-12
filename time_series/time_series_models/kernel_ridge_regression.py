@@ -8,8 +8,7 @@ class KernelRidgeRegression(TimeSeriesModel):
         self, 
         kernels:list = None, 
         reg:float=1e-9, 
-        lag=1, 
-        **kwargs
+        lag=1
     ):
         super().__init__(lag=lag)
         if kernels == None:
@@ -21,9 +20,6 @@ class KernelRidgeRegression(TimeSeriesModel):
 
         self.reg = reg
         self.lag = lag
-
-
-
 
     def fit(self, x:np.array, y:np.array=None):
         # Assign y if not assigned
