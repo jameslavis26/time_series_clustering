@@ -1,8 +1,9 @@
 import numpy as np
 import scipy as sp
+from .time_series_base import TimeSeriesModel
 
 
-class KernelRidgeRegression:
+class KernelRidgeRegression(TimeSeriesModel):
     def __init__(
         self, 
         kernels:list = None, 
@@ -10,6 +11,7 @@ class KernelRidgeRegression:
         lag=1, 
         **kwargs
     ):
+        super().__init__(lag=lag)
         if kernels == None:
             raise Exception("Please pass in a kernel")
         elif type(kernels) == list:
@@ -20,19 +22,7 @@ class KernelRidgeRegression:
         self.reg = reg
         self.lag = lag
 
-    def reshape_data(self, x, y=None):
-        if len(x.shape) == 1:
-            xt = np.lib.stride_tricks.sliding_window_view(x, window_shape=[self.lag])
-        else:
-            _, d = x.shape
-            xt = np.lib.stride_tricks.sliding_window_view(x, window_shape=[self.lag, d])[:, 0, :, :]
-        
-        if type(y) != type(None):
-            yt = y[self.lag-1:]
-        else:
-            yt = None
 
-        return xt, yt
 
 
     def fit(self, x:np.array, y:np.array=None):
