@@ -1,1 +1,3 @@
 from .kernel_ridge_regression import KernelRidgeRegression
+from .moving_average import MovingAverageEstimator
+from .rascutti_model import RascuttiModel
