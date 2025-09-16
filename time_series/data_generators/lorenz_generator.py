@@ -1,5 +1,44 @@
 import numpy as np
 
+class LorenzGenerator:
+    def __init__(self, **parameters):
+        self.__dict__.update(parameters)
+
+        # Process the noise mean parameter
+        noise_mean = parameters["noise_mean"]
+        if type(noise_mean) == list and len(noise_mean) != 3:
+            raise Exception("If noise mean is a list, expecting a mean for [x, y, z]")
+        elif type(noise_mean) in [int, float]:
+            noise_mean = [noise_mean, noise_mean, noise_mean]
+        self.noise_mean = noise_mean
+
+        # Process the noise variance parameter
+        noise_covariance = parameters["noise_covariance"]
+        if type(noise_covariance) == list and (len(noise_covariance) != 3 or len(noise_covariance[0]) != 3):
+            raise Exception("If noise covariance is a list, expecting a covariance matrix [[x11, y12, z13], [...], [...]]")
+        elif type(noise_covariance) in [int, float]:
+            noise_covariance = np.diag([noise_covariance, noise_covariance, noise_covariance])
+        self.noise_covariance = noise_covariance
+
+        # Process the x0  parameter
+        x0 = parameters["x0"]
+        if len(x0) != 3:
+            raise Exception("Expecting a x0  [x, y, z]")
+        self.x0 = x0    
+
+
+    def __call__(self):
+        return generate_lorenz_curve(
+            x0 = self.x0,
+            noise_mean=self.noise_mean,
+            noise_cov = self.noise_covariance,
+            T = self.T, 
+            dt=self.dt, 
+            rho=self.rho, 
+            sigma=self.sigma, 
+            beta=self.beta
+        )
+
 def generate_lorenz_curve(
         x0 = [1,1,1], 
         noise_cov = 0*np.eye(3), 

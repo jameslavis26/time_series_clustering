@@ -1,0 +1,93 @@
+definitions:
+  models:
+    model_krr: 
+      model: KernelRidgeRegression
+
+  kernels:
+    k1: 
+      kernel: GaussianKernel
+      parameters:
+      hyperparameters:
+        bandwidth:
+            type: float
+            min: 1
+            max: 100 
+    k2: 
+      kernel: GaussianKernel
+      parameters:
+      hyperparameters:
+        bandwidth:
+            type: float
+            min: 1
+            max: 100 
+    k3: 
+      kernel: GaussianKernel
+      parameters:
+      hyperparameters:
+        bandwidth:
+            type: float
+            min: 1
+            max: 100 
+
+  datasets:
+    dataset1: 
+      generator: Lorenz
+      parameters:
+        noise_mean: [0,0,0]
+        noise_cov: 1e-2
+        x0: [10,10,10]
+        dt: 0.01
+        T: 10
+        rho: 28
+        sigma: 10 
+        beta: 2.4
+
+  evaluators:
+    mse_evaluator: 
+      evaluator: MeanSquaredError
+
+experiments:
+  # experiment_template:
+  #   datasets:
+  #     dataset:
+  #       parameters:
+  #         param3:
+  #       sweeps:
+  #         sweep1:
+  #           param1:
+  #             min:
+  #             max:
+  #             N_steps:
+  #           param2:
+  #             min:
+  #             max:
+  #             N_steps:
+  #         sweep2:
+  #           param4:
+  #             min:
+  #             max:
+  #             N_steps:
+  #   models:
+  #   evaluators:
+
+  experiment:
+    datasets:
+      dataset1:
+        sweeps:
+          sweep_cov:
+            noise_cov:
+              min: 1e-2
+              max: 1
+              N_steps: 10
+        parameters:
+          dt: 0.001
+        train_val_test_split: [0.6, 0.2, 0.2]
+    models:
+      - model_krr:
+          parameters:
+            kernels: [k1, k2, k3]
+
+    evaluators:
+      - mse_evaluator
+
+       
