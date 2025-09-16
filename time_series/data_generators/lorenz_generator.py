@@ -16,7 +16,7 @@ class LorenzGenerator:
         noise_covariance = parameters["noise_covariance"]
         if type(noise_covariance) == list and (len(noise_covariance) != 3 or len(noise_covariance[0]) != 3):
             raise Exception("If noise covariance is a list, expecting a covariance matrix [[x11, y12, z13], [...], [...]]")
-        elif type(noise_covariance) in [int, float]:
+        else:
             noise_covariance = np.diag([noise_covariance, noise_covariance, noise_covariance])
         self.noise_covariance = noise_covariance
 

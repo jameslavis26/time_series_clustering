@@ -34,7 +34,7 @@ definitions:
       generator: Lorenz
       parameters:
         noise_mean: [0,0,0]
-        noise_cov: 1e-2
+        noise_covariance: 0.01
         x0: [10,10,10]
         dt: 0.01
         T: 10
@@ -75,8 +75,8 @@ experiments:
       dataset1:
         sweeps:
           sweep_cov:
-            noise_cov:
-              min: 1e-2
+            noise_covariance:
+              min: 0.01
               max: 1
               N_steps: 10
         parameters:
