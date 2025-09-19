@@ -18,6 +18,11 @@ experiment:
         - k1
       parameters:
         reg: 0.0000001
+      hyperparameters:
+        reg:
+          type: float
+          min: 0.0000001
+          max: 0.0001
 
     model_krr2:
       model: KernelRidgeRegression
@@ -35,8 +40,9 @@ experiment:
 
     dataset2:
       filepath: "data.csv"
-      train_test_split: [0.5, 0.4, 0.1]
+      train_test_split: [0.5, 0.2, 0.3]
       
   metrics:
+    hyperparameter_tuning: MeanSquaredError
     evaluation: 
       - MeanSquaredError
