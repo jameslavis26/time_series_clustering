@@ -1,0 +1,42 @@
+experiment:
+  kernels:
+    k1:
+      kernel: GaussianKernel
+      parameters:
+        bandwidth: 100
+    k2:
+      kernel: GaussianKernel
+      parameters:
+        bandwidth: 50
+
+  models:
+    model_krr1:
+      model: KernelRidgeRegression
+      kernels:
+        - k1
+        - k1
+        - k1
+      parameters:
+        reg: 0.0000001
+
+    model_krr2:
+      model: KernelRidgeRegression
+      kernels:
+        - k1
+        - k1
+        - k2
+      parameters:
+        reg: 0.0000001
+
+  datasets:
+    dataset1:
+      filepath: "data.csv"
+      train_test_split: [0.5, 0.2, 0.3]
+
+    dataset2:
+      filepath: "data.csv"
+      train_test_split: [0.5, 0.4, 0.1]
+      
+  metrics:
+    evaluation: 
+      - MeanSquaredError
