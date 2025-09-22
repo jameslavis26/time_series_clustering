@@ -1,51 +1,64 @@
-experiment:
-  kernels:
-    k1:
-      kernel: GaussianKernel
-      parameters:
-        bandwidth: 100
-    k2:
-      kernel: GaussianKernel
-      parameters:
-        bandwidth: 50
+experiment_config:
+  name:
+  savefolder: test_experiment
 
-  models:
-    model_krr1:
-      model: KernelRidgeRegression
-      kernels:
-        - k1
-        - k1
-        - k1
-      parameters:
-        reg: 0.0000001
-      hyperparameters:
-        reg:
-          type: float
-          min: 0.0000001
-          max: 0.0001
+experiments:
+  experiment:
+    kernels:
+      k1:
+        kernel: GaussianKernel
+        parameters:
+          bandwidth: 100
+      k2:
+        kernel: GaussianKernel
+        parameters:
+          bandwidth: 50
 
-    model_krr2:
-      model: KernelRidgeRegression
-      kernels:
-        - k1
-        - k1
-        - k2
-      parameters:
-        reg: 0.0000001
+    models:
+      model_krr1:
+        model: KernelRidgeRegression
+        kernels:
+          - k1
+          - k1
+          - k1
+        parameters:
+          reg: 0.0000001
+        hyperparameters:
+          reg:
+            type: float
+            min: 0.0000001
+            max: 0.0001
 
-  datasets:
-    dataset1:
-      filepath: "data.csv"
-      train_test_split: [0.5, 0.2, 0.3]
+      model_krr2:
+        model: KernelRidgeRegression
+        kernels:
+          - k1
+          - k1
+          - k2
+        parameters:
+          reg: 0.0000001
 
-    dataset2:
-      filepath: "data.csv"
-      train_test_split: [0.5, 0.2, 0.3]
+    datasets:
+      dataset1:
+        filepath: "data.csv"
+        train_test_split: [0.5, 0.2, 0.3]
+
+      dataset2:
+        filepath: "data.csv"
+        train_test_split: [0.5, 0.2, 0.3]
+        
+    metrics:
+      hyperparameter_tuning: MeanSquaredError
+      evaluation: 
+        - MeanSquaredError
+
+    reports:
+      plot:
+        type: scatter
+        x: reg
+        y: 
+          - MeanSquaredError
+          - k1_bandwidth
+
+
       
-  metrics:
-    hyperparameter_tuning: MeanSquaredError
-    evaluation: 
-      - MeanSquaredError
-
-  reports:
-    
