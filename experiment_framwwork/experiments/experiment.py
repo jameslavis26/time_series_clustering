@@ -10,15 +10,74 @@ from tqdm import tqdm
 from time_series import time_series_models
 from time_series import kernels
 from time_series import evaluators
+from time_series import data_generators
 
 from .time_series_data import TimeSeriesData
 from .kernel_container import KernelContainer 
 from .model_container import ModelContainer
-from . sub_experiment import SubExperiment
+from .sub_experiment import SubExperiment
 
 model_library = {name:model for name, model in time_series_models.__dict__.items() if "_" not in name}
 kernel_library = {name:kernel for name, kernel in kernels.__dict__.items() if "_" not in name}
 evaluator_library = {name:evaluator for name, evaluator in evaluators.__dict__.items() if "_" not in name}
+data_generator_library = {name:generator for name, generator in data_generators.__dict__.items() if "_" not in name} 
+
+def iterate_datasets(datasets_conf):
+    for dataset, conf in datasets_conf.items():
+        generator = conf["generator"]
+        parameters = conf["parameters"] if "parameters" in conf else {}
+        tsp = conf["train_test_split"]
+
+        generator_class = data_generator_library[generator]
+
+        if "sweeps" in conf:
+            sweep_val_names = []
+            sweep_values = []
+            for param, sweep_vals in conf["sweeps"].items():
+                sweep_val_names.append(param)
+                if type(sweep_vals) == dict:
+                    sweep_values.append(np.linspace(
+                        float(sweep_vals["min"]), 
+                        float(sweep_vals["max"]), 
+                        int(sweep_vals["N_steps"])
+                    ))
+                else:
+                    sweep_values.append(sweep_vals)
+
+            # print(sweep_val_names, sweep_values)
+            
+            # Combine the sweep values
+            all_combinations = itertools.product(*sweep_values)     
+            for combined_vals in all_combinations:
+                sweep_result = dict(parameters)           
+                for i, param in enumerate(sweep_val_names):
+                    sweep_result[param] = combined_vals[i]
+
+                generator = generator_class(**sweep_result)
+
+                _, data = generator()
+                X, y = data[:-1], data[1:]
+
+                yield TimeSeriesData(
+                    X, 
+                    y, 
+                    train_val_test_split=tsp,
+                    dataset_name=dataset,
+                    parameters=sweep_result
+                )
+        else: 
+            generator = generator_class(**parameters)
+
+            _, data = generator()
+            X, y = data[:-1], data[1:]
+
+            yield TimeSeriesData(
+                    X, 
+                    y, 
+                    train_val_test_split=tsp,
+                    dataset_name=dataset,
+                    parameters=parameters
+                )
 
 class Experiment:
     def __init__(self, filepath):
@@ -26,7 +85,8 @@ class Experiment:
 
         self.completed_experiments = []
 
-        self.reports = []
+        self.plots = []
+        self.report_cols = []
 
         self.savefolder = ""
 
@@ -43,9 +103,14 @@ class Experiment:
     def parse_config(self, config_path):
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
+
+        self.config = config
         
         self.experiment_config = config["experiment_config"]
         experiments = config["experiments"]
+        for exp in config["experiments"].values():
+            self.plots.append(exp["plots"])
+            self.report_cols.append(exp["reports"])
 
         self.savefolder = self.experiment_config["savefolder"]
 
@@ -56,7 +121,7 @@ class Experiment:
             models = experiment_confs["models"]
             datasets = experiment_confs["datasets"]
             metrics = experiment_confs["metrics"]
-            self.reports.append(experiment_confs["reports"])
+            # self.plots.append(experiment_confs["plots"])
 
             # Load evaluators
             hparam_evaluator = evaluator_library[metrics["hyperparameter_tuning"]]
@@ -72,13 +137,15 @@ class Experiment:
                 for k_name, k_conf in experiment_confs["kernels"].items()
             }
 
+            datasets = iterate_datasets(datasets)
+
             product = itertools.product(datasets, models)
             
-            for dataset_name, model_name in product:
+            for dataset, model_name in product:
                 # Load dataset
-                data = self.load_dataset(datasets[dataset_name]["filepath"])
-                X, y = data[:-1], data[1:]
-                tsp = datasets[dataset_name]["train_test_split"]
+                # data = self.load_dataset(datasets[dataset_name]["filepath"])
+                # X, y = data[:-1], data[1:]
+                # tsp = datasets[dataset_name]["train_test_split"]
 
 
                 # Load model
@@ -89,12 +156,7 @@ class Experiment:
 
                 yield SubExperiment(
                     experiment_name=experiment,
-                    dataset = TimeSeriesData(
-                        X, 
-                        y, 
-                        train_val_test_split=tsp,
-                        dataset_name=dataset_name
-                    ),
+                    dataset=dataset,
                     model_container= ModelContainer(
                         model_name=model_name,
                         model_class=model_class,
@@ -109,27 +171,23 @@ class Experiment:
     
     def run_experiments(self):
         for sub_exp in tqdm(self.sub_experiments):
-            # self.completed_experiments.append(sub_exp)
-
             sub_exp.run_experiment()
-
             self.completed_experiments.append(sub_exp)
 
     def get_results(self):
         return pd.DataFrame(map(lambda x: x.get_results(), self.completed_experiments)).set_index("exp_name")
     
-    def generate_reports(self):
+    def generate_plots(self):
         results = self.get_results()
-        i = 0
-        for r in self.reports:
-            i += 1
+        count = 0
+        for r in self.plots:
+            count += 1
             for report, report_conf in r.items():
-                if report == "plot":
-                    if "type" not in report_conf:
-                        plottype = "line"
-                    else:
-                        plottype = report_conf["type"]
+                
+                plt.figure()
+                plottype = report_conf["type"] if "type" in report_conf else "line"
 
+                if plottype in ["line", "scatter"]:
                     if plottype == "line":
                         plotter = plt.plot
                     elif plottype == "scatter":
@@ -148,16 +206,27 @@ class Experiment:
                         plt.ylabel(report_conf["y"])
                 
                     plt.xlabel(report_conf["x"])
+                
+                elif plottype == "histogram":
+                    x_data = results[report_conf["x"]]
+                    plt.hist(x_data, bins=int(report_conf["bins"]))
+                    plt.xlabel(report_conf["x"])
+                
+                savefile = report + ".png"
 
-                    if "savefile" not in report_conf:
-                        savefile = os.path.join(self.savefolder, f"plot_{i}.png")
-                    else:
-                        savefile = os.path.join(self.savefolder, report_conf["savefile"])
-                    
-                    plt.savefig(savefile)
+                plt.title(report)
+                plt.savefig(os.path.join(self.savefolder, savefile))
 
-                    
+    def generate_reports(self):
+        df = self.get_results()
+        for r in self.report_cols:
+            print(df[r])
+
+
     def save(self):       
         self.get_results().to_csv(os.path.join(self.savefolder, "results.csv"))
         
+        with open(os.path.join(self.savefolder, "experiment_config.yaml"), "w") as file:
+            yaml.dump(self.config, file)
+            file.close()
                 

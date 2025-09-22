@@ -4,30 +4,48 @@ definitions:
       model: KernelRidgeRegression
 
   kernels:
+    # k:
+    #   kernel: 
+    #   parameters:
+    #     param1:
+    #   hyperparameters:
+    #     param2::
+    #         type: float
+    #         min: 1
+    #         max: 100 
     k1: 
       kernel: GaussianKernel
       parameters:
-      hyperparameters:
-        bandwidth:
-            type: float
-            min: 1
-            max: 100 
+        bandwidth: 100
     k2: 
       kernel: GaussianKernel
       parameters:
-      hyperparameters:
-        bandwidth:
-            type: float
-            min: 1
-            max: 100 
+        bandwidth: 100
     k3: 
       kernel: GaussianKernel
       parameters:
-      hyperparameters:
-        bandwidth:
-            type: float
-            min: 1
-            max: 100 
+        bandwidth: 100
+    # k1: 
+    #   kernel: GaussianKernel
+    #   hyperparameters:
+    #     bandwidth:
+    #         type: float
+    #         min: 1
+    #         max: 100 
+    # k2: 
+    #   kernel: GaussianKernel
+    #   hyperparameters:
+    #     bandwidth:
+    #         type: float
+    #         min: 1
+    #         max: 100 
+    # k3: 
+    #   kernel: GaussianKernel
+    #   hyperparameters:
+    #     bandwidth:
+    #         type: float
+    #         min: 1
+    #         max: 100 
 
   datasets:
     dataset1: 
@@ -41,6 +59,11 @@ definitions:
         rho: 28
         sigma: 10 
         beta: 2.4
+      sweep:
+        sweep_cov:
+          min: 0
+          max: 10 
+          N_steps: 10
 
   evaluators:
     mse_evaluator: 
@@ -54,7 +77,7 @@ experiments:
   #         param3:
   #       sweeps:
   #         sweep1:
-  #           param1:
+  #           param1: 
   #             min:
   #             max:
   #             N_steps:
@@ -73,21 +96,19 @@ experiments:
   experiment:
     datasets:
       dataset1:
-        sweeps:
-          sweep_cov:
-            noise_covariance:
-              min: 0.01
-              max: 1
-              N_steps: 10
-        parameters:
-          dt: 0.001
         train_val_test_split: [0.6, 0.2, 0.2]
     models:
-      - model_krr:
-          parameters:
-            kernels: [k1, k2, k3]
+      model_krr:
+        kernels: #[k1, k2, k3]
+          - k1
+          - k1
+          - k1
+        hyperparameters:
+          reg: 
+            type: float
+            min: 0.0000001
+            max: 0.01
 
     evaluators:
-      - mse_evaluator
-
-       
+      hyperparameter_tuning: mse_evaluator
+      final: mse_evaluator

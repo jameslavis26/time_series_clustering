@@ -147,12 +147,23 @@ class SubExperiment:
 
     def get_results(self):
         results = dict()
+        # Get recorded results
         results.update(self.results)
+
+        # Get model parameters
         results.update(self.model_container.parameters)
+
+        # Get kernel parameters
         for k_name, kernel in self.kernels.items():
             params = kernel.kernel_parameters
             for i,j in params.items():
-                results.update({k_name + "_" + i:j})
+                 results[k_name + "_" + i] = j
+
+        # Get dataset parameters
+        dataset_name = self.dataset.dataset_name
+        for param, val in self.dataset.parameters.items():
+            results[param] = val
+        
         return results
 
     def __repr__(self):

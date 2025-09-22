@@ -1,7 +1,7 @@
 import numpy as np
 
 class TimeSeriesData:
-    def __init__(self, X, y=None, train_val_test_split=None, **kwargs):
+    def __init__(self, X, y=None, train_val_test_split=None, dataset_name=None, parameters=None, **kwargs):
         self.__dict__.update(kwargs)
         self.X = X
         self.y = y
@@ -9,6 +9,8 @@ class TimeSeriesData:
         self.N = len(X)
         self.indices = np.arange(self.N)
         self.tvt_split = train_val_test_split
+        self.dataset_name = dataset_name if dataset_name else ""
+        self.parameters = parameters if parameters else {}
 
     def train_data(self):
         train_idx = self.indices[:int(self.tvt_split[0]*self.N)]
