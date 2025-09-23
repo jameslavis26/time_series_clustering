@@ -1,6 +1,6 @@
 experiment_config:
   name:
-  savefolder: 
+  savefolder: model_comparison
 
 experiments:
   experiment:
@@ -9,43 +9,71 @@ experiments:
         kernel: GaussianKernel
         parameters:
           bandwidth: 100
+        hyperparameters:
+          reg:
+            type: float
+            min: 10
+            max: 100
       k2:
         kernel: GaussianKernel
         parameters:
           bandwidth: 50
+        hyperparameters:
+          reg:
+            type: float
+            min: 10
+            max: 100
+      k3:
+        kernel: GaussianKernel
+        parameters:
+          bandwidth: 50
+        hyperparameters:
+          reg:
+            type: float
+            min: 10
+            max: 100
 
     models:
-      model_krr1:
-        model: KernelRidgeRegression
-        kernels:
-          - k1
-          - k1
-          - k1
+      model_moving_av:
+        model: MovingAverageEstimator
         parameters:
-          reg: 0.0000001
-        # hyperparameters:
-        #   reg:
-        #     type: float
-        #     min: 0.0000001
-        #     max: 0.0001
+          lag: 1
 
-      model_krr2:
+      model_krr:
         model: KernelRidgeRegression
         kernels:
-          - k1
           - k1
           - k2
-        parameters:
-          reg: 0.0000001
+          - k3
+        # parameters:
+        #   reg: 0.0000001
+        hyperparameters:
+          reg:
+            type: float
+            min: 0.0000001
+            max: 0.1
+
+      model_rascutti:
+        model: RascuttiModel
+        kernels:
+          - k1
+          - k2
+          - k3
+        # parameters:
+        #   reg: 0.0000001
+        hyperparameters:
+          rho:
+            type: float
+            min: 0.0000001
+            max: 1
+          lam:
+            type: float
+            min: 0.0000001
+            max: 1
+          
 
     datasets:
-      # dataset1:
-      #   generator: CSVData
-      #   parameters:
-      #     filepath: data.csv
-      #   train_test_split: [0.5, 0.2, 0.3]
-
-      dataset2:
+      lorenz_1:
         generator: LorenzGenerator
         parameters:
           noise_mean: [0,0,0]
@@ -57,11 +85,6 @@ experiments:
           sigma: 10 
           beta: 2.4
         train_test_split: [0.5, 0.2, 0.3]
-        sweeps:
-          sigma:
-            min: 10
-            max: 15
-            N_steps: 5
         
     metrics:
       hyperparameter_tuning: MeanSquaredError
@@ -69,17 +92,17 @@ experiments:
         - MeanSquaredError
 
     plots:
-      plot1:
-        type: scatter
-        x: reg
-        y: 
-          - MeanSquaredError
-          - k1_bandwidth
+    #   plot1:
+    #     type: scatter
+    #     x: reg
+    #     y: 
+    #       - MeanSquaredError
+    #       - k1_bandwidth
 
-      plot2: 
-        type: histogram
-        x: MeanSquaredError
-        bins: 100
+    #   plot2: 
+    #     type: histogram
+    #     x: MeanSquaredError
+    #     bins: 100
 
     reports:
       - MeanSquaredError

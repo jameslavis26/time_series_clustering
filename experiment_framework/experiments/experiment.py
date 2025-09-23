@@ -150,8 +150,8 @@ class Experiment:
 
                 # Load model
                 model_class = model_library[models[model_name]["model"]]
-                model_params = models[model_name]["parameters"]
-                kernel_names = models[model_name]["kernels"]
+                model_params = models[model_name]["parameters"] if "parameters" in models[model_name] else {}
+                kernel_names = models[model_name]["kernels"] if "kernels" in models[model_name] else []
                 model_hparams = models[model_name]["hyperparameters"] if "hyperparameters" in models[model_name] else None
 
                 yield SubExperiment(
@@ -180,7 +180,7 @@ class Experiment:
     def generate_plots(self):
         results = self.get_results()
         count = 0
-        for r in self.plots:
+        for r in [i for i in self.plots if i]:
             count += 1
             for report, report_conf in r.items():
                 

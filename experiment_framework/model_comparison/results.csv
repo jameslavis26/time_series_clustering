@@ -1,0 +1,4 @@
+exp_name,MeanSquaredError,lag,noise_mean,noise_covariance,x0,dt,T,rho,sigma,beta,reg,k1_bandwidth,k2_bandwidth,k3_bandwidth,lam
+lorenz_1 - model_moving_av,0.3850549755818826,1.0,"[0, 0, 0]",0.01,"[10, 10, 10]",0.01,10,28,10,2.4,,,,,
+lorenz_1 - model_krr,0.25028215232221795,,"[0, 0, 0]",0.01,"[10, 10, 10]",0.01,10,28,10,2.4,8.797959155171264e-05,100.0,50.0,50.0,
+lorenz_1 - model_rascutti,0.16593926258548974,,"[0, 0, 0]",0.01,"[10, 10, 10]",0.01,10,28,10,2.4,,100.0,50.0,50.0,0.003675173242148465

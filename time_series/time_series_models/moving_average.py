@@ -1,8 +1,9 @@
 from .time_series_base import TimeSeriesModel
 
 class MovingAverageEstimator(TimeSeriesModel):
-    def __init__(self, lag):
+    def __init__(self, lag, **kwargs):
         super().__init__(lag=lag)
+        self.__dict__.update(kwargs)
 
     def fit(self, x, y=None):
         pass

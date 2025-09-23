@@ -104,7 +104,7 @@ class SubExperiment:
         study = optuna.create_study()
         study.optimize(
             objective, 
-            n_trials=2, 
+            n_trials=30, 
             timeout=60*20, # Optimise for n_trails or timeout seconds
         )
 
