@@ -11,7 +11,8 @@ class SubExperiment:
         dataset,
         evaluators,
         kernels,
-        hyperparameter_evaluator=None
+        hyperparameter_evaluator=None,
+        drop_data=True
     ):
         self.experiment_name = experiment_name
         self.model_container = model_container
@@ -22,7 +23,8 @@ class SubExperiment:
 
         name = f"{self.dataset.dataset_name} - {self.model_container.model_name}"
 
-        self.results = dict(exp_name=name)        
+        self.results = dict(exp_name=name)    
+        self.drop_data = drop_data    
 
     def build_model(self):
         model_class = self.model_container.model
@@ -165,6 +167,10 @@ class SubExperiment:
             results[param] = val
         
         return results
+    
+    def drop_data(self):
+        if self.drop_data:
+            self.dataset.drop_data()
 
     def __repr__(self):
         rep = f"Experiment:\n {str(self.model_container)} \n {str(self.dataset)}"

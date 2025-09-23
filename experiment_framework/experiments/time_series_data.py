@@ -35,3 +35,7 @@ class TimeSeriesData:
             return self.X[test_idx], None
 
         return self.X[test_idx], self.y[test_idx]
+    
+    def drop_data(self):
+        self.X = None
+        self.y = None

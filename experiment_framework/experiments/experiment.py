@@ -172,6 +172,7 @@ class Experiment:
     def run_experiments(self):
         for sub_exp in tqdm(self.sub_experiments):
             sub_exp.run_experiment()
+            sub_exp.drop_data()
             self.completed_experiments.append(sub_exp)
 
     def get_results(self):
