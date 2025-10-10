@@ -230,4 +230,3 @@ class Experiment:
         with open(os.path.join(self.savefolder, "experiment_config.yaml"), "w") as file:
             yaml.dump(self.config, file)
             file.close()
-                
