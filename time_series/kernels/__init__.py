@@ -1,1 +1,2 @@
 from .gaussian_kernel import GaussianKernel
+from .gaussian_jacobian_kernel import JacobianGaussianKernel

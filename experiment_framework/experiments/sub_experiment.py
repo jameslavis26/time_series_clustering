@@ -24,7 +24,7 @@ class SubExperiment:
         name = f"{self.dataset.dataset_name} - {self.model_container.model_name}"
 
         self.results = dict(exp_name=name)    
-        self.drop_data = drop_data    
+        self.drop_data_when_done = drop_data    
 
     def build_model(self):
         model_class = self.model_container.model
@@ -169,7 +169,7 @@ class SubExperiment:
         return results
     
     def drop_data(self):
-        if self.drop_data:
+        if self.drop_data_when_done:
             self.dataset.drop_data()
 
     def __repr__(self):

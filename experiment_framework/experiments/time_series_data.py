@@ -1,3 +1,5 @@
+import numpy as np
+
 class TimeSeriesData:
     def __init__(self, X, y=None, train_val_test_split=None, dataset_name=None, parameters=None, **kwargs):
         self.__dict__.update(kwargs)

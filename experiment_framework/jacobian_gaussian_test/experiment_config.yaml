@@ -1,0 +1,91 @@
+experiment_config:
+  name: null
+  savefolder: jacobian_gaussian_test
+experiments:
+  experiment:
+    datasets:
+      lorenz_1:
+        generator: LorenzGenerator
+        parameters:
+          T: 10
+          beta: 2.4
+          dt: 0.01
+          noise_covariance: 0.01
+          noise_mean:
+          - 0
+          - 0
+          - 0
+          rho: 28
+          sigma: 10
+          x0:
+          - 10
+          - 10
+          - 10
+        train_test_split:
+        - 0.5
+        - 0.2
+        - 0.3
+    kernels:
+      k1:
+        hyperparameters:
+          reg:
+            max: 100
+            min: 10
+            type: float
+        kernel: GaussianKernel
+        parameters:
+          bandwidth: 100
+      k2:
+        hyperparameters:
+          reg:
+            max: 100
+            min: 10
+            type: float
+        kernel: GaussianKernel
+        parameters:
+          bandwidth: 50
+      k3:
+        hyperparameters:
+          reg:
+            max: 100
+            min: 10
+            type: float
+        kernel: GaussianKernel
+        parameters:
+          bandwidth: 50
+      k_jacob:
+        kernel: JacobianGaussianKernel
+    metrics:
+      evaluation:
+      - MeanSquaredError
+      hyperparameter_tuning: MeanSquaredError
+    models:
+      model_krr:
+        hyperparameters:
+          reg:
+            max: 0.1
+            min: 1.0e-07
+            type: float
+        kernels:
+        - k1
+        - k2
+        - k3
+        model: KernelRidgeRegression
+      model_krr_g:
+        hyperparameters:
+          reg:
+            max: 0.1
+            min: 1.0e-07
+            type: float
+        kernels:
+        - k_jacob
+        - k_jacob
+        - k_jacob
+        model: KernelRidgeRegression
+      model_moving_av:
+        model: MovingAverageEstimator
+        parameters:
+          lag: 1
+    plots: null
+    reports:
+    - MeanSquaredError

@@ -11,8 +11,9 @@ from time_series import time_series_models
 from time_series import kernels
 from time_series import evaluators
 from time_series import data_generators
+from time_series.data_handlers import TimeSeriesData
 
-from .time_series_data import TimeSeriesData
+# from .time_series_data import TimeSeriesData
 from .kernel_container import KernelContainer 
 from .model_container import ModelContainer
 from .sub_experiment import SubExperiment
@@ -127,15 +128,19 @@ class Experiment:
             hparam_evaluator = evaluator_library[metrics["hyperparameter_tuning"]]
             evaluators = {i:evaluator_library[i]() for i in metrics["evaluation"]}
 
-            # Process kernels
-            kernels = {
-                k_name:KernelContainer(
-                    kernel_name=k_name,
-                    kernel_class=kernel_library[k_conf["kernel"]],
-                    kernel_parameters=k_conf["parameters"]
-                )
-                for k_name, k_conf in experiment_confs["kernels"].items()
-            }
+            kernels = {}
+            for k_name, k_conf in experiment_confs["kernels"].items():
+                if "parameters" in k_conf:
+                    kernels[k_name] = KernelContainer(
+                        kernel_name=k_name,
+                        kernel_class=kernel_library[k_conf["kernel"]],
+                        kernel_parameters=k_conf["parameters"]
+                    )
+                else:
+                   kernels[k_name] = KernelContainer(
+                        kernel_name=k_name,
+                        kernel_class=kernel_library[k_conf["kernel"]],
+                    ) 
 
             datasets = iterate_datasets(datasets)
 
@@ -146,7 +151,6 @@ class Experiment:
                 # data = self.load_dataset(datasets[dataset_name]["filepath"])
                 # X, y = data[:-1], data[1:]
                 # tsp = datasets[dataset_name]["train_test_split"]
-
 
                 # Load model
                 model_class = model_library[models[model_name]["model"]]
@@ -172,7 +176,7 @@ class Experiment:
     def run_experiments(self):
         for sub_exp in tqdm(self.sub_experiments):
             sub_exp.run_experiment()
-            sub_exp.drop_data()
+            # sub_exp.drop_data() # Problematic if dataset is used more than once
             self.completed_experiments.append(sub_exp)
 
     def get_results(self):

@@ -5,16 +5,19 @@ class LorenzGenerator:
         self.__dict__.update(parameters)
 
         # Process the noise mean parameter
-        noise_mean = parameters["noise_mean"]
-        if type(noise_mean) == list and len(noise_mean) != 3:
-            raise Exception("If noise mean is a list, expecting a mean for [x, y, z]")
-        elif type(noise_mean) in [int, float]:
-            noise_mean = [noise_mean, noise_mean, noise_mean]
-        self.noise_mean = noise_mean
+        if "noise_mean" in parameters:
+            noise_mean = parameters["noise_mean"]
+            if type(noise_mean) == list and len(noise_mean) != 3:
+                raise Exception("If noise mean is a list, expecting a mean for [x, y, z]")
+            elif type(noise_mean) in [int, float]:
+                noise_mean = [noise_mean, noise_mean, noise_mean]
+            self.noise_mean = noise_mean
+        else:
+            self.noise_mean = [0,0,0]
 
         # Process the noise variance parameter
         noise_covariance = parameters["noise_covariance"]
-        if type(noise_covariance) == list and (len(noise_covariance) != 3 or len(noise_covariance[0]) != 3):
+        if type(noise_covariance) == list and (len(noise_covariance) != 3 or (type(noise_covariance[0]) == list and len(noise_covariance[0]) != 3)):
             raise Exception("If noise covariance is a list, expecting a covariance matrix [[x11, y12, z13], [...], [...]]")
         else:
             noise_covariance = np.diag([noise_covariance, noise_covariance, noise_covariance])

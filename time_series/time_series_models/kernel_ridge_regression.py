@@ -43,6 +43,11 @@ class KernelRidgeRegression(TimeSeriesModel):
         # Reshape data with a rolling window
         self.x_train, y_train = self.reshape_data(xt, yt)
 
+        for kernel in self.kernels:
+            if "requires_update" in kernel.__dict__.keys():
+                if kernel.requires_update:
+                    kernel.update_params(lam=self.reg, lag=self.lag)
+
         # Calculate kernel matrices
         K_train = sp.linalg.block_diag(
             *[
