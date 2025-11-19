@@ -1,6 +1,10 @@
 # Data
 /data/
 
+# Personal
+personal
+personal/*
+
 # Mac OS-specific storage files
 .DS_Store
 

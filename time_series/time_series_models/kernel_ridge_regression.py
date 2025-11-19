@@ -8,7 +8,7 @@ class KernelRidgeRegression(TimeSeriesModel):
         self, 
         kernels:list = None, 
         reg:float=1e-9, 
-        lag=1
+        lag=1, 
     ):
         super().__init__(lag=lag)
         if kernels == None:
@@ -31,8 +31,9 @@ class KernelRidgeRegression(TimeSeriesModel):
             yt = y
 
         # Ensure enough kernels for each dimension
-        if len(yt.shape) == 1 and len(self.kernels) != 1:
-            raise Exception("The number of kernels must match the dimension of y")
+        if len(yt.shape) == 1:
+            if len(self.kernels) != 1:
+                raise Exception("The number of kernels must match the dimension of y")
         elif yt.shape[1] != len(self.kernels):    
             raise Exception("The number of kernels must match the dimension of y")
 
@@ -58,11 +59,13 @@ class KernelRidgeRegression(TimeSeriesModel):
         # Reshape y to be a vector
         y_window = y_train.T.reshape(-1, 1)
 
+        self.y_mean = y_window.mean(axis=0)
+
         # Fit KRR
         N = K_train.shape[0]
 
         LHS = K_train + N*self.reg*np.eye(N)
-        RHS = y_window
+        RHS = y_window - self.y_mean
 
         self.alpha = sp.linalg.solve(LHS, RHS)
     
@@ -83,7 +86,7 @@ class KernelRidgeRegression(TimeSeriesModel):
         )
         
         # Calculate prediciton
-        y_pred = K_test@self.alpha
+        y_pred = K_test@self.alpha + self.y_mean
 
         # Retrun prediciton in correct shape
         return y_pred.reshape(self.dimension_y, -1).T
