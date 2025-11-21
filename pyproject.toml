@@ -7,7 +7,7 @@ name = "my-research-tools"
 version = "0.0.1"
 description = "Both time_series and experiments packages"
 authors = [{name = "James Lavis"}]
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 
 [tool.setuptools.packages.find]
 include = ["time_series", "experiment_framework.experiments"]
