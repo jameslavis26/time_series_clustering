@@ -6,6 +6,14 @@
 
 A short description of the project.
 
+## Installation
+First create a virtual environment using either anaconda or python virtural venv. Make sure to activate the virtual environment before installing packages. 
+
+```
+pip install -r requirements.txt
+pip install -e .
+```
+
 ## Project Organization
 
 ```
