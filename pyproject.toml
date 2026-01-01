@@ -20,8 +20,8 @@ requires-python = "~=3.12.11"
 
 [tool.ruff]
 line-length = 99
-src = ["time_series"]
-include = ["pyproject.toml", "time_series/**/*.py"]
+src = ["time_series", "kernel_models"]
+include = ["pyproject.toml", "time_series/**/*.py", "kernel_models/**/*.py"]
 
 [tool.ruff.lint]
 extend-select = ["I"]  # Add import sorting

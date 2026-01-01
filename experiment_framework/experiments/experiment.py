@@ -7,7 +7,7 @@ import yaml
 
 from tqdm import tqdm
 
-from time_series import time_series_models
+from time_series import models
 from time_series import kernels
 from time_series import evaluators
 from time_series import data_generators
@@ -18,7 +18,7 @@ from .kernel_container import KernelContainer
 from .model_container import ModelContainer
 from .sub_experiment import SubExperiment
 
-model_library = {name:model for name, model in time_series_models.__dict__.items() if "_" not in name}
+model_library = {name:model for name, model in models.__dict__.items() if "_" not in name}
 kernel_library = {name:kernel for name, kernel in kernels.__dict__.items() if "_" not in name}
 evaluator_library = {name:evaluator for name, evaluator in evaluators.__dict__.items() if "_" not in name}
 data_generator_library = {name:generator for name, generator in data_generators.__dict__.items() if "_" not in name} 
