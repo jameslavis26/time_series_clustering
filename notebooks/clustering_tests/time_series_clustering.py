@@ -135,22 +135,22 @@ class TimeSeriesClustering:
 
         return model1, model2, X1, X2
 
-    def _kernel_inner_product(self, model1, model2, X1, X2):
-        kernels = model1.kernels
+    # def _kernel_inner_product(self, model1, model2, X1, X2):
+    #     kernels = model1.kernels
 
-        if isinstance(kernels, list):
-            K = sp.linalg.block_diag(
-                *[k(X1, X2) for k in kernels]
-            )
-        else:
-            K = sp.linalg.block_diag(
-                *[
-                    kernels(X1, X2)
-                    for _ in range(X1.shape[-1])
-                ]
-            )
+    #     if isinstance(kernels, list):
+    #         K = sp.linalg.block_diag(
+    #             *[k(X1, X2) for k in kernels]
+    #         )
+    #     else:
+    #         K = sp.linalg.block_diag(
+    #             *[
+    #                 kernels(X1, X2)
+    #                 for _ in range(X1.shape[-1])
+    #             ]
+    #         )
 
-        return model1.alpha.T @ K @ model2.alpha
+    #     return model1.alpha.T @ K @ model2.alpha
 
     def _pairwise_similarity(self, data1, data2) -> float:
         ds1 = self._prepare_dataset(data1)
@@ -159,10 +159,9 @@ class TimeSeriesClustering:
         params, best_score = self._optimise_hyperparams(ds1, ds2)
         model1, model2, X1, X2 = self._fit_models_full(ds1, ds2, params)
 
-        ip11 = self._kernel_inner_product(model1, model1, X1, X1)
-        ip22 = self._kernel_inner_product(model2, model2, X2, X2)
+        ip11 = model1.inner_product(model1)
+        ip22 = model2.inner_product(model2)
 
-        ip12 = self._kernel_inner_product(model1, model2, X1, X2)
-        
+        ip12 = model1.inner_product(model2)
 
         return ip12/np.sqrt(ip11*ip22), best_score

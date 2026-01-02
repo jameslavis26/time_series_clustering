@@ -83,3 +83,21 @@ class KernelRidgeRegression:
 
         # Retrun prediciton in correct shape
         return y_pred.reshape(self.dimension_y, -1).T
+    
+    def inner_product(self, other):
+        assert isinstance(other) == KernelRidgeRegression
+        kernels = self.kernels
+
+        if isinstance(kernels, list):
+            K = sp.linalg.block_diag(
+                *[k(self.x_train, other.X_train) for k in kernels]
+            )
+        else:
+            K = sp.linalg.block_diag(
+                *[
+                    kernels(self.x_train, other.X_train)
+                    for _ in range(self.x_train.shape[-1])
+                ]
+            )
+
+        return self.alpha.T @ K @ other.alpha
