@@ -19,6 +19,8 @@ class TimeSeriesClustering:
         n_trials=50,
         n_jobs=-1,
         random_state=None,
+        shared_hparams:dict = None,
+        hparams:dict = None
     ):
         self.model_cls = model_cls
         self.kernel = kernel
@@ -32,6 +34,18 @@ class TimeSeriesClustering:
         self.similarity_matrix = None
 
         self.error_matrix = None
+
+        if shared_hparams:
+            self._verify_paramdict(shared_hparams)
+            self.shared_hparams = shared_hparams
+        else:
+            self.shared_hparams = dict()
+
+        if hparams:
+            self._verify_paramdict(hparams)
+            self.hparams = hparams
+        else:
+            self.hparams = dict()
 
     # -------------------------
     # Public API
@@ -71,6 +85,56 @@ class TimeSeriesClustering:
     # Internal helpers
     # -------------------------
 
+    def _verify_paramdict(self, paramdict):
+        if not isinstance(paramdict, dict):
+            raise TypeError("Hyperparameters must be provided as a dictionary")
+
+        for param, spec in paramdict.items():
+            if not isinstance(spec, dict):
+                raise TypeError(
+                    f"Hyperparameter '{param}' must be a dict with keys: type, min, max (if applicable)"
+                )
+
+            # --- type ---
+            if "type" not in spec:
+                raise ValueError(f"Hyperparameter '{param}' is missing required key 'type'")
+
+            if spec["type"] not in (int, float, list):
+                raise ValueError(
+                    f"Hyperparameter '{param}': type must be int, float, or list"
+                )
+
+            # --- int / float params ---
+            if spec["type"] in (int, float):
+                if "min" not in spec or "max" not in spec:
+                    raise ValueError(
+                        f"Hyperparameter '{param}' of type {spec['type'].__name__} "
+                        "must specify 'min' and 'max'"
+                    )
+
+                if not isinstance(spec["min"], spec["type"]) or not isinstance(spec["max"], spec["type"]):
+                    raise TypeError(
+                        f"Hyperparameter '{param}': 'min' and 'max' must be of type {spec['type'].__name__}"
+                    )
+
+                if spec["min"] >= spec["max"]:
+                    raise ValueError(
+                        f"Hyperparameter '{param}': 'min' must be < 'max'"
+                    )
+
+            # --- list params ---
+            elif spec["type"] is list:
+                if "values" not in spec:
+                    raise ValueError(
+                        f"Hyperparameter '{param}' of type list must specify 'values'"
+                    )
+
+                if not isinstance(spec["values"], list) or len(spec["values"]) == 0:
+                    raise TypeError(
+                        f"Hyperparameter '{param}': 'values' must be a non-empty list"
+                )
+
+
     def _prepare_dataset(self, data: np.ndarray) -> TimeSeriesData:
         return TimeSeriesData(
             X=data[:-1],
@@ -81,15 +145,39 @@ class TimeSeriesClustering:
 
     def _optimise_hyperparams(self, ds1: TimeSeriesData, ds2: TimeSeriesData):
         def objective(trial):
-            bandwidth = trial.suggest_float("bandwidth", 1e-9, 4)
-            reg_1 = trial.suggest_float("reg_1", 1e-12, 1e-2)
-            reg_2 = trial.suggest_float("reg_2", 1e-12, 1e-2)
+            model1_params = dict()
+            model2_params = dict()
+
+            for param_name, param_dict in self.shared_hparams.items():
+                if param_dict["type"] == int:
+                    param_val = trial.suggest_int(param_name, param_dict["min"], param_dict["max"])
+                elif param_dict["type"] == float:
+                    param_val = trial.suggest_float(param_name, param_dict["min"], param_dict["max"])
+                elif param_dict["type"] == list:
+                    param_val = trial.suggest_categorical(param_name, param_dict["values"])
+
+                model1_params[param_name] = param_val
+                model2_params[param_name] = param_val
+
+            for param_name, param_dict in self.hparams.items():
+                if param_dict["type"] == int:
+                    param_val1 = trial.suggest_int(param_name + "_1", param_dict["min"], param_dict["max"])
+                    param_val2 = trial.suggest_int(param_name + "_2", param_dict["min"], param_dict["max"])
+                elif param_dict["type"] == float:
+                    param_val1 = trial.suggest_float(param_name + "_1", param_dict["min"], param_dict["max"])
+                    param_val2 = trial.suggest_float(param_name + "_2", param_dict["min"], param_dict["max"])
+                elif param_dict["type"] == list:
+                    param_val1 = trial.suggest_categorical(param_name + "_1", param_dict["values"])
+                    param_val2 = trial.suggest_categorical(param_name + "_2", param_dict["values"])
+
+                model1_params[param_name] = param_val1
+                model2_params[param_name] = param_val2
 
             model1 = self.model_cls(
-                kernel=self.kernel, bandwidth=bandwidth, reg=reg_1
+                kernel=self.kernel, **model1_params
             )
             model2 = self.model_cls(
-                kernel=self.kernel, bandwidth=bandwidth, reg=reg_2
+                kernel=self.kernel, **model2_params
             )
 
             X1_tr, y1_tr = ds1.train_data()
@@ -116,15 +204,25 @@ class TimeSeriesClustering:
         return study.best_params, study.best_value
 
     def _fit_models_full(self, ds1, ds2, params):
+        model1_params = dict()
+        model2_params = dict()
+
+        for k, v in params.items():
+            if k[-2] == "_1":
+                model1_params[k[:-2]] = v
+            elif k[-2] == "_2":
+                model2_params[k[:-2]] = v
+            else:
+                model1_params[k] = v
+                model2_params[k] = v
+
         model1 = self.model_cls(
             kernel=self.kernel,
-            bandwidth=params["bandwidth"],
-            reg=params["reg_1"],
+            **model1_params
         )
         model2 = self.model_cls(
             kernel=self.kernel,
-            bandwidth=params["bandwidth"],
-            reg=params["reg_2"],
+            **model2_params
         )
 
         X1, y1 = ds1.full_data()
@@ -134,23 +232,6 @@ class TimeSeriesClustering:
         model2.fit(X2, y2)
 
         return model1, model2, X1, X2
-
-    # def _kernel_inner_product(self, model1, model2, X1, X2):
-    #     kernels = model1.kernels
-
-    #     if isinstance(kernels, list):
-    #         K = sp.linalg.block_diag(
-    #             *[k(X1, X2) for k in kernels]
-    #         )
-    #     else:
-    #         K = sp.linalg.block_diag(
-    #             *[
-    #                 kernels(X1, X2)
-    #                 for _ in range(X1.shape[-1])
-    #             ]
-    #         )
-
-    #     return model1.alpha.T @ K @ model2.alpha
 
     def _pairwise_similarity(self, data1, data2) -> float:
         ds1 = self._prepare_dataset(data1)

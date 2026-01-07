@@ -3,13 +3,20 @@ import json
 import numpy as np
 from datetime import datetime
 
-class Experiment:
-    def __init__(self, name, base_dir="experiments"):
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
+class Experiment:
+    def __init__(self, name, base_dir="experiments", resume=False):
         self.name = name
-        self.timestamp = timestamp
-        self.root = os.path.join(base_dir, name, timestamp)
+
+        if resume:
+            # resume latest experiment
+            root = os.path.join(base_dir, name)
+            timestamps = sorted(os.listdir(root))
+            self.timestamp = timestamps[-1]
+        else:
+            self.timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        self.root = os.path.join(base_dir, name, self.timestamp)
 
         self.paths = {
             "results": os.path.join(self.root, "results"),
@@ -24,12 +31,42 @@ class Experiment:
 
         # config
         self.config_path = os.path.join(self.paths["configs"], "config.json")
-        self.config = {}
+        self.config = self._load_json(self.config_path, default={})
         self._save_config()
 
-        # results dictionary
-        self.results = {}
+        # results
         self.results_path = os.path.join(self.paths["results"], "results.json")
+        self.results = self._load_json(self.results_path, default={})
+
+    # -------------------------
+    # Internal helpers
+    # -------------------------
+    def _json_safe(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (np.integer, np.floating)):
+            return obj.item()
+        if isinstance(obj, dict):
+            return {k: self._json_safe(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [self._json_safe(v) for v in obj]
+        try:
+            json.dumps(obj)
+            return obj
+        except TypeError:
+            return str(obj)
+
+    def _atomic_write(self, path, data):
+        tmp = path + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp, path)
+
+    def _load_json(self, path, default=None):
+        if os.path.exists(path):
+            with open(path) as f:
+                return json.load(f)
+        return default
 
     # -------------------------
     # Config handling
@@ -39,8 +76,7 @@ class Experiment:
         self._save_config()
 
     def _save_config(self):
-        with open(self.config_path, "w") as f:
-            json.dump(self.config, f, indent=2)
+        self._atomic_write(self.config_path, self._json_safe(self.config))
 
     # -------------------------
     # Result handling
@@ -54,39 +90,33 @@ class Experiment:
         self._save_results()
 
     def _save_results(self):
-        def convert(obj):
-            if isinstance(obj, np.ndarray):
-                return obj.tolist()
-            return obj
-
-        with open(self.results_path, "w") as f:
-            json.dump({k: convert(v) for k, v in self.results.items()}, f, indent=2)
+        self._atomic_write(self.results_path, self._json_safe(self.results))
 
     def get_result(self, key):
         return self.results.get(key)
 
     # -------------------------
-    # Dataset handling with metadata
+    # Dataset handling
     # -------------------------
     def save_dataset(self, data, name, metadata=None):
-        """
-        Save a dataset with optional metadata.
-        - data: np.ndarray or compatible
-        - name: filename without extension
-        - metadata: dict
-        Saves:
-            data -> data/{name}.npy
-            metadata -> data/{name}_metadata.json
-        """
-        # save array
         data_path = os.path.join(self.paths["data"], f"{name}.npy")
         np.save(data_path, data)
 
-        # save metadata if provided
         if metadata is not None:
             meta_path = os.path.join(self.paths["data"], f"{name}_metadata.json")
-            with open(meta_path, "w") as f:
-                json.dump(metadata, f, indent=2)
+            self._atomic_write(meta_path, self._json_safe(metadata))
+
+    def load_dataset(self, name, with_metadata=False):
+        data_path = os.path.join(self.paths["data"], f"{name}.npy")
+        data = np.load(data_path)
+
+        if not with_metadata:
+            return data
+
+        meta_path = os.path.join(self.paths["data"], f"{name}_metadata.json")
+        metadata = self._load_json(meta_path, default=None)
+
+        return data, metadata
 
     # -------------------------
     # Other saving helpers
@@ -95,15 +125,18 @@ class Experiment:
         path = os.path.join(self.paths["results"], f"{name}.npy")
         np.save(path, array)
 
+    def save_dataframe(self, df, name):
+        path = os.path.join(self.paths["results"], f"{name}.csv")
+        df.to_csv(path, index=False)
+
     def save_scores(self, scores_dict, name="scores"):
         path = os.path.join(self.paths["results"], f"{name}.json")
-        with open(path, "w") as f:
-            json.dump(scores_dict, f, indent=2)
+        self._atomic_write(path, self._json_safe(scores_dict))
 
     def save_model(self, model, name):
+        import pickle
         path = os.path.join(self.paths["models"], f"{name}.pkl")
         with open(path, "wb") as f:
-            import pickle
             pickle.dump(model, f)
 
     # -------------------------
@@ -111,8 +144,8 @@ class Experiment:
     # -------------------------
     def log(self, msg):
         log_path = os.path.join(self.paths["logs"], "log.txt")
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        line = f"[{timestamp}] {msg}"
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        line = f"[{timestamp}] [{self.name}] {msg}"
 
         print(line)
         with open(log_path, "a") as f:
