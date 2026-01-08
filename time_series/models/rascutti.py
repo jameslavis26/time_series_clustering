@@ -94,6 +94,7 @@ class RascuttiModelSingleTarget:
             kernels = [self.kernels(X[..., j], self.x_train[..., j]) for j in range(self.dimension_x)]
 
         return np.sum([kernels[j]@self.alphas[j] for j in range(self.dimension_x)], axis=0) + self.mean_y   
+    
 class RascuttiModel:
     def __init__(self, 
         kernel:str="gaussian", 
