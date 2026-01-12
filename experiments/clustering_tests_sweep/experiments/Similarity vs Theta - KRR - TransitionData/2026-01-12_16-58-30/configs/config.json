@@ -1,0 +1,8 @@
+{
+  "n_points": 400,
+  "n_thetas": 15,
+  "seed": 0,
+  "sweep": "theta",
+  "model": "KRR",
+  "theta_ref": 0.7853981633974483
+}
