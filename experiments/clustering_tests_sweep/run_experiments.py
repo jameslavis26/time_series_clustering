@@ -240,8 +240,9 @@ for n_corr in range(1, MAX_CORRELATED_DIMS + 1):
     experiment.add_result(
         **{f"corr_dims_{n_corr}": dict(
             n_correlated_dimensions=n_corr,
-            mean_similarity=float(sims.mean()),
-            std_similarity=float(sims.std()),
+            theta_values=theta_values.tolist(),
+            mean_similarities=sims.mean(axis=0).tolist(),
+            std_similarities=sims.std(axis=0).tolist(),
             n_repeat=N_REPEAT,
             noise=NOISE_FIXED,
             theta_ref=float(THETA_REF),
@@ -322,8 +323,9 @@ for n_uncorr in range(0, MAX_UNCORRELATED_DIMS + 1):
         **{f"uncorr_dims_{n_uncorr}": dict(
             n_uncorrelated_dimensions=n_uncorr,
             n_correlated_dimensions=N_CORRELATED_FIXED,
-            mean_similarity=float(sims.mean()),
-            std_similarity=float(sims.std()),
+            theta_values=theta_values.tolist(),
+            mean_similarities=sims.mean(axis=0).tolist(),
+            std_similarities=sims.std(axis=0).tolist(),
             n_repeat=N_REPEAT,
             noise=NOISE_FIXED,
             theta_ref=float(THETA_REF),
