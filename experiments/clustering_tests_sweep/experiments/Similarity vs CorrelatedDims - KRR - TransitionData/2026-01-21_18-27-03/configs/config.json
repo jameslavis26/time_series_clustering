@@ -1,0 +1,9 @@
+{
+  "seed": 0,
+  "n_points": 400,
+  "n_repeat": 20,
+  "sweep": "n_dimensions",
+  "model": "KRR",
+  "theta_ref": 400.0,
+  "noise": 1
+}
