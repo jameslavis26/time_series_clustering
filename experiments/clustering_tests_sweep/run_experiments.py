@@ -25,24 +25,24 @@ SEED = 0
 
 # default
 N_POINTS = 400
-THETA_REF = 400
+THETA_REF = np.pi/2
 NOISE = 1
 N_CORRELATED_DIMS = 3
 N_UNCORRELATED_DIMS = 0
 
 # sweeps
-N_THETAS = 15
-N_REPEAT = 20
+N_THETAS = 20
+N_REPEAT = 25
 MAX_CORRELATED_DIMS = 10
 MAX_UNCORRELATED_DIMS = 10
 
 # data
-NOISE_SWEEP = np.linspace(1e-3, 10, 20)
+NOISE_SWEEP = [0] #np.linspace(1e-3, 10, 20)
 N_DIM_SWEEP = np.arange(3, MAX_CORRELATED_DIMS)
 N_CORR_DIM_SWEEP = np.arange(0, MAX_UNCORRELATED_DIMS)
 
 # optuna
-N_TRIALS = 30
+N_TRIALS = 15
 
 # model
 MODEL_NAME = "KRR"
@@ -54,7 +54,7 @@ KERNEL = "rbf"
 
 np.random.seed(SEED)
 
-theta_values = np.linspace(0, np.pi / 2, N_THETAS)
+theta_values = np.linspace(0, np.pi, N_THETAS)
 
 
 # ============================================================
@@ -102,8 +102,8 @@ for noise in tqdm(NOISE_SWEEP, desc="Noise sweep"):
             data = create_dataset(
                 theta,
                 n_points=N_POINTS,
-                n_correlated_dimensions=3,
-                n_uncorrelated_dimensions=0,
+                n_correlated_dimensions=N_CORRELATED_DIMS,
+                n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
                 noise=noise,
             )
 
@@ -146,13 +146,19 @@ for noise in tqdm(NOISE_SWEEP, desc="Noise sweep"):
         X_ref, y_ref = ref_dataset.full_data()
         model_ref.fit(X_ref, y_ref)
 
+        ip11 = model_ref.inner_product(model_ref)
+
         # similarities
         sims = np.zeros(len(theta_values))
         for i, ds in enumerate(datasets):
             X, y = ds.full_data()
             model = KernelRidgeRegression(kernel=KERNEL, **best_params)
             model.fit(X, y)
-            sims[i] = model_ref.inner_product(model)
+
+            ip12 = model_ref.inner_product(model)
+            ip22 = model.inner_product(model)
+
+            sims[i] = ip12/np.sqrt(ip11 * ip22)
 
         similarities_all.append(sims)
 
@@ -258,13 +264,19 @@ for n_dim in tqdm(N_DIM_SWEEP, desc="Dim sweep"):
         X_ref, y_ref = ref_dataset.full_data()
         model_ref.fit(X_ref, y_ref)
 
+        ip11 = model_ref.inner_product(model_ref)
+
         # similarities
         sims = np.zeros(len(theta_values))
         for i, ds in enumerate(datasets):
             X, y = ds.full_data()
             model = KernelRidgeRegression(kernel=KERNEL, **best_params)
             model.fit(X, y)
-            sims[i] = model_ref.inner_product(model)
+
+            ip12 = model_ref.inner_product(model)
+            ip22 = model.inner_product(model)
+
+            sims[i] = ip12/np.sqrt(ip11 * ip22)
 
         similarities_all.append(sims)
 
@@ -371,13 +383,19 @@ for n_udim in tqdm(N_CORR_DIM_SWEEP, desc="Uncorrelated Dim sweep"):
         X_ref, y_ref = ref_dataset.full_data()
         model_ref.fit(X_ref, y_ref)
 
+        ip11 = model_ref.inner_product(model_ref)
+
         # similarities
         sims = np.zeros(len(theta_values))
         for i, ds in enumerate(datasets):
             X, y = ds.full_data()
             model = KernelRidgeRegression(kernel=KERNEL, **best_params)
             model.fit(X, y)
-            sims[i] = model_ref.inner_product(model)
+
+            ip12 = model_ref.inner_product(model)
+            ip22 = model.inner_product(model)
+
+            sims[i] = ip12/np.sqrt(ip11 * ip22)
 
         similarities_all.append(sims)
 

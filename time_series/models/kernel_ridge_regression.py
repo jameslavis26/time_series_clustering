@@ -99,4 +99,4 @@ class KernelRidgeRegression:
                 ]
             )
 
-        return self.alpha.T @ K @ other.alpha
+        return (self.alpha.T @ K @ other.alpha).flatten()[0]
