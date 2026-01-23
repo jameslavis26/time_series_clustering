@@ -17,6 +17,36 @@ from time_series.data_handlers import TimeSeriesData
 
 import optuna
 
+from pathlib import Path
+import json
+import os
+
+def load_latest_results(experiment_root):
+    experiment_root = Path(experiment_root)
+
+    # list timestamped runs
+    runs = [p for p in experiment_root.iterdir() if p.is_dir()]
+    if not runs:
+        raise ValueError(f"No runs found in {experiment_root}")
+
+    latest_run = max(runs, key=lambda p: p.name)
+
+    results_path = latest_run / "results" / "results.json"
+    config_path = latest_run / "configs" / "config.json"
+
+    with open(results_path) as f:
+        results = json.load(f)
+
+    with open(config_path) as f:
+        config = json.load(f)
+
+    return {
+        "run_path": latest_run,
+        "results": results,
+        "config": config
+    }
+
+
 
 # ============================================================
 # CONFIG
@@ -31,18 +61,18 @@ N_CORRELATED_DIMS = 3
 N_UNCORRELATED_DIMS = 0
 
 # sweeps
-N_THETAS = 20
-N_REPEAT = 25
+N_THETAS = 30
+N_REPEAT = 100
 MAX_CORRELATED_DIMS = 10
 MAX_UNCORRELATED_DIMS = 10
 
 # data
-NOISE_SWEEP = np.linspace(1e-3, 10, 20)
+NOISE_SWEEP = np.linspace(1e-3, 3, 10)
 N_DIM_SWEEP = np.arange(3, MAX_CORRELATED_DIMS)
 N_CORR_DIM_SWEEP = np.arange(0, MAX_UNCORRELATED_DIMS)
 
 # optuna
-N_TRIALS = 15
+N_TRIALS = 30
 
 # model
 MODEL_NAME = "KRR"
@@ -53,7 +83,6 @@ KERNEL = "rbf"
 # ============================================================
 
 np.random.seed(SEED)
-
 theta_values = np.linspace(0, np.pi, N_THETAS)
 
 
@@ -175,6 +204,55 @@ for noise in tqdm(NOISE_SWEEP, desc="Noise sweep"):
         )}
     )
 
+###################
+### Make figures
+###################
+
+# Load latest
+noise_data_json = load_latest_results("experiments/Similarity vs Theta - KRR - TransitionData (Averaged)")
+
+### Plot similarity for different noises
+noise_data_json["run_path"].joinpath("")
+
+if "figures" not in os.listdir(noise_data_json["run_path"]):
+    os.mkdir(noise_data_json["run_path"].joinpath("figures"))
+
+for k, r in noise_data_json["results"].items():
+    plt.figure()
+    std = np.array(r["std_similarities"])
+    ci = 1.96*std/np.sqrt(len(std))
+    plt.errorbar(r["theta_values"], r["mean_similarities"], ci, marker="*")
+    plt.vlines(r["theta_ref"], 0, max(r["mean_similarities"]), "r")
+    plt.title(k)
+    plt.xlabel("Theta")
+    plt.ylabel("Similarity +- 95% ci")
+
+    savepath = noise_data_json["run_path"].joinpath("figures").joinpath(k + ".png")
+
+    plt.savefig(savepath)    
+
+### Plot Similarity drop off
+plt.figure()
+x = []
+y = []
+std = []
+
+for k, r in noise_data_json["results"].items():
+    idx = np.argmin(np.abs(np.array(r["theta_values"]) - r["theta_ref"]))
+    x.append(r["noise"])
+    y.append(r["mean_similarities"][idx])
+    std.append(r["std_similarities"][idx])
+
+ci = [1.96*s/np.sqrt(len(std)) for s in std]
+
+plt.errorbar(x, y, ci, marker="*")
+plt.xlabel("noise")
+plt.ylabel("Similarity at $\\theta_{ref}$")
+
+savepath = noise_data_json["run_path"].joinpath("figures").joinpath("similarity_at_ref" + ".png")
+
+plt.savefig(savepath)  
+
 # ============================================================
 # EXPERIMENT 2: similarity vs n_dimensions
 # ============================================================
@@ -283,8 +361,10 @@ for n_dim in tqdm(N_DIM_SWEEP, desc="Dim sweep"):
     sims = np.stack(similarities_all)
 
     experiment.add_result(
-        **{f"theta_sweep_ndim_{noise:.3f}": dict(
+        **{f"theta_sweep_ndim_{n_dim:.3f}": dict(
             noise=float(NOISE),
+            n_corr_dim = n_dim,
+            n_uncorr_dim = N_UNCORRELATED_DIMS,
             theta_ref=float(THETA_REF),
             theta_values=theta_values.tolist(),
             mean_similarities=sims.mean(axis=0).tolist(),
@@ -292,6 +372,55 @@ for n_dim in tqdm(N_DIM_SWEEP, desc="Dim sweep"):
             n_repeat=N_REPEAT,
         )}
     )
+
+###################
+### Make figures
+###################
+
+# Load latest
+corr_data_json = load_latest_results("experiments/Similarity vs CorrelatedDims - KRR - TransitionData")
+
+### Plot similarity for different noises
+corr_data_json["run_path"].joinpath("")
+
+if "figures" not in os.listdir(corr_data_json["run_path"]):
+    os.mkdir(corr_data_json["run_path"].joinpath("figures"))
+
+for k, r in corr_data_json["results"].items():
+    plt.figure()
+    std = np.array(r["std_similarities"])
+    ci = 1.96*std/np.sqrt(len(std))
+    plt.errorbar(r["theta_values"], r["mean_similarities"], ci, marker="*")
+    plt.vlines(r["theta_ref"], 0, max(r["mean_similarities"]), "r")
+    plt.title(k)
+    plt.xlabel("Theta")
+    plt.ylabel("Similarity +- 95% ci")
+
+    savepath = corr_data_json["run_path"].joinpath("figures").joinpath(k + ".png")
+
+    plt.savefig(savepath)    
+
+### Plot Similarity drop off
+plt.figure()
+x = []
+y = []
+std = []
+
+for k, r in corr_data_json["results"].items():
+    idx = np.argmin(np.abs(np.array(r["theta_values"]) - r["theta_ref"]))
+    x.append(r["n_corr_dim"])
+    y.append(r["mean_similarities"][idx])
+    std.append(r["std_similarities"][idx])
+
+ci = [1.96*s/np.sqrt(len(std)) for s in std]
+
+plt.errorbar(x, y, ci, marker="*")
+plt.xlabel("Number of dimensions")
+plt.ylabel("Similarity at $\\theta_{ref}$")
+
+savepath = corr_data_json["run_path"].joinpath("figures").joinpath("similarity_at_ref" + ".png")
+
+plt.savefig(savepath)  
 
 # ============================================================
 # EXPERIMENT 3: similarity vs n_uncorrelated_dimensions
@@ -402,8 +531,10 @@ for n_udim in tqdm(N_CORR_DIM_SWEEP, desc="Uncorrelated Dim sweep"):
     sims = np.stack(similarities_all)
 
     experiment.add_result(
-        **{f"theta_sweep_ndim_{noise:.3f}": dict(
+        **{f"theta_sweep_ndim_{n_udim:.3f}": dict(
             noise=float(NOISE),
+            n_corr_dim = N_CORRELATED_DIMS,
+            n_uncorr_dim = n_udim,
             theta_ref=float(THETA_REF),
             theta_values=theta_values.tolist(),
             mean_similarities=sims.mean(axis=0).tolist(),
@@ -412,7 +543,54 @@ for n_udim in tqdm(N_CORR_DIM_SWEEP, desc="Uncorrelated Dim sweep"):
         )}
     )
 
+###################
+### Make figures
+###################
 
+# Load latest
+uncorr_data_json = load_latest_results("experiments/Similarity vs UncorrelatedDims - KRR - TransitionData")
+
+### Plot similarity for different noises
+uncorr_data_json["run_path"].joinpath("")
+
+if "figures" not in os.listdir(uncorr_data_json["run_path"]):
+    os.mkdir(uncorr_data_json["run_path"].joinpath("figures"))
+
+for k, r in uncorr_data_json["results"].items():
+    plt.figure()
+    std = np.array(r["std_similarities"])
+    ci = 1.96*std/np.sqrt(len(std))
+    plt.errorbar(r["theta_values"], r["mean_similarities"], ci, marker="*")
+    plt.vlines(r["theta_ref"], 0, max(r["mean_similarities"]), "r")
+    plt.title(k)
+    plt.xlabel("Theta")
+    plt.ylabel("Similarity +- 95% ci")
+
+    savepath = uncorr_data_json["run_path"].joinpath("figures").joinpath(k + ".png")
+
+    plt.savefig(savepath)    
+
+### Plot Similarity drop off
+plt.figure()
+x = []
+y = []
+std = []
+
+for k, r in uncorr_data_json["results"].items():
+    idx = np.argmin(np.abs(np.array(r["theta_values"]) - r["theta_ref"]))
+    x.append(r["n_uncorr_dim"])
+    y.append(r["mean_similarities"][idx])
+    std.append(r["std_similarities"][idx])
+
+ci = [1.96*s/np.sqrt(len(std)) for s in std]
+
+plt.errorbar(x, y, ci, marker="*")
+plt.xlabel("Number of uncorrelated dimensions")
+plt.ylabel("Similarity at $\\theta_{ref}$")
+
+savepath = uncorr_data_json["run_path"].joinpath("figures").joinpath("similarity_at_ref" + ".png")
+
+plt.savefig(savepath)  
 
 # # ============================================================
 # # EXPERIMENT 2: similarity vs n_correlated_dimensions
