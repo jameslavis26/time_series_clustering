@@ -108,6 +108,51 @@ experiment.add_config(
 for noise in tqdm(NOISE_SWEEP, desc="Noise sweep"):
     similarities_all = []
 
+    # theta datasets
+    datasets = []
+    for theta in theta_values:
+        data = create_dataset(
+            theta,
+            n_points=N_POINTS,
+            n_correlated_dimensions=N_CORRELATED_DIMS,
+            n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
+            noise=noise,
+        )
+
+        datasets.append(
+            TimeSeriesData(
+                X=data[:-1],
+                y=data[1:],
+                lag=1,
+                train_val_test_split=[0.5, 0.3, 0.2],
+                theta=theta,
+            )
+        )
+
+    # hyperparams
+    def objective(trial):
+        bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
+        reg = trial.suggest_float("reg", 1e-12, 1e-4)
+
+        mse = 0.0
+        for ds in datasets:
+            X_tr, y_tr = ds.train_data()
+            X_va, y_va = ds.val_data()
+
+            model = KernelRidgeRegression(
+                kernel=KERNEL,
+                bandwidth=bandwidth,
+                reg=reg,
+            )
+            model.fit(X_tr, y_tr)
+            mse += np.mean((model.predict(X_va) - y_va) ** 2)
+
+        return mse
+
+    study = optuna.create_study()
+    study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
+    best_params = study.best_params
+
     for r in range(N_REPEAT):
         # reference
         ref_data = create_dataset(
@@ -146,29 +191,6 @@ for noise in tqdm(NOISE_SWEEP, desc="Noise sweep"):
                 )
             )
 
-        # hyperparams
-        def objective(trial):
-            bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
-            reg = trial.suggest_float("reg", 1e-12, 1e-4)
-
-            mse = 0.0
-            for ds in datasets:
-                X_tr, y_tr = ds.train_data()
-                X_va, y_va = ds.val_data()
-
-                model = KernelRidgeRegression(
-                    kernel=KERNEL,
-                    bandwidth=bandwidth,
-                    reg=reg,
-                )
-                model.fit(X_tr, y_tr)
-                mse += np.mean((model.predict(X_va) - y_va) ** 2)
-
-            return mse
-
-        study = optuna.create_study()
-        study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
-        best_params = study.best_params
 
         # fit ref
         model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
@@ -275,6 +297,51 @@ experiment.add_config(
 for n_dim in tqdm(N_DIM_SWEEP, desc="Dim sweep"):
     similarities_all = []
 
+    # theta datasets
+    datasets = []
+    for theta in theta_values:
+        data = create_dataset(
+            theta,
+            n_points=N_POINTS,
+            n_correlated_dimensions=N_CORRELATED_DIMS,
+            n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
+            noise=noise,
+        )
+
+        datasets.append(
+            TimeSeriesData(
+                X=data[:-1],
+                y=data[1:],
+                lag=1,
+                train_val_test_split=[0.5, 0.3, 0.2],
+                theta=theta,
+            )
+        )
+
+    # hyperparams
+    def objective(trial):
+        bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
+        reg = trial.suggest_float("reg", 1e-12, 1e-4)
+
+        mse = 0.0
+        for ds in datasets:
+            X_tr, y_tr = ds.train_data()
+            X_va, y_va = ds.val_data()
+
+            model = KernelRidgeRegression(
+                kernel=KERNEL,
+                bandwidth=bandwidth,
+                reg=reg,
+            )
+            model.fit(X_tr, y_tr)
+            mse += np.mean((model.predict(X_va) - y_va) ** 2)
+
+        return mse
+
+    study = optuna.create_study()
+    study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
+    best_params = study.best_params
+
     for r in range(N_REPEAT):
         # reference
         ref_data = create_dataset(
@@ -312,30 +379,6 @@ for n_dim in tqdm(N_DIM_SWEEP, desc="Dim sweep"):
                     theta=theta,
                 )
             )
-
-        # hyperparams
-        def objective(trial):
-            bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
-            reg = trial.suggest_float("reg", 1e-12, 1e-4)
-
-            mse = 0.0
-            for ds in datasets:
-                X_tr, y_tr = ds.train_data()
-                X_va, y_va = ds.val_data()
-
-                model = KernelRidgeRegression(
-                    kernel=KERNEL,
-                    bandwidth=bandwidth,
-                    reg=reg,
-                )
-                model.fit(X_tr, y_tr)
-                mse += np.mean((model.predict(X_va) - y_va) ** 2)
-
-            return mse
-
-        study = optuna.create_study()
-        study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
-        best_params = study.best_params
 
         # fit ref
         model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
@@ -445,6 +488,51 @@ experiment.add_config(
 for n_udim in tqdm(N_CORR_DIM_SWEEP, desc="Uncorrelated Dim sweep"):
     similarities_all = []
 
+    # theta datasets
+    datasets = []
+    for theta in theta_values:
+        data = create_dataset(
+            theta,
+            n_points=N_POINTS,
+            n_correlated_dimensions=N_CORRELATED_DIMS,
+            n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
+            noise=noise,
+        )
+
+        datasets.append(
+            TimeSeriesData(
+                X=data[:-1],
+                y=data[1:],
+                lag=1,
+                train_val_test_split=[0.5, 0.3, 0.2],
+                theta=theta,
+            )
+        )
+
+    # hyperparams
+    def objective(trial):
+        bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
+        reg = trial.suggest_float("reg", 1e-12, 1e-4)
+
+        mse = 0.0
+        for ds in datasets:
+            X_tr, y_tr = ds.train_data()
+            X_va, y_va = ds.val_data()
+
+            model = KernelRidgeRegression(
+                kernel=KERNEL,
+                bandwidth=bandwidth,
+                reg=reg,
+            )
+            model.fit(X_tr, y_tr)
+            mse += np.mean((model.predict(X_va) - y_va) ** 2)
+
+        return mse
+
+    study = optuna.create_study()
+    study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
+    best_params = study.best_params
+
     for r in range(N_REPEAT):
         # reference
         ref_data = create_dataset(
@@ -482,30 +570,6 @@ for n_udim in tqdm(N_CORR_DIM_SWEEP, desc="Uncorrelated Dim sweep"):
                     theta=theta,
                 )
             )
-
-        # hyperparams
-        def objective(trial):
-            bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
-            reg = trial.suggest_float("reg", 1e-12, 1e-4)
-
-            mse = 0.0
-            for ds in datasets:
-                X_tr, y_tr = ds.train_data()
-                X_va, y_va = ds.val_data()
-
-                model = KernelRidgeRegression(
-                    kernel=KERNEL,
-                    bandwidth=bandwidth,
-                    reg=reg,
-                )
-                model.fit(X_tr, y_tr)
-                mse += np.mean((model.predict(X_va) - y_va) ** 2)
-
-            return mse
-
-        study = optuna.create_study()
-        study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
-        best_params = study.best_params
 
         # fit ref
         model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
