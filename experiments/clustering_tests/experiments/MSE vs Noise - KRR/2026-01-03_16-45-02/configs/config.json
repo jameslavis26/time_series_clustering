@@ -1,0 +1,7 @@
+{
+  "n_per": 10,
+  "n_groups": 3,
+  "seed": 0,
+  "sweep": "noise",
+  "model": "KRR"
+}
