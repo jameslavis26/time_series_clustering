@@ -538,7 +538,7 @@ for n_udim in tqdm(N_CORR_DIM_SWEEP, desc="Uncorrelated Dim sweep"):
         ref_data = create_dataset(
             THETA_REF,
             n_points=N_POINTS,
-            n_correlated_dimensions=MAX_CORRELATED_DIMS,
+            n_correlated_dimensions=N_CORRELATED_DIMS,
             n_uncorrelated_dimensions=n_udim,
             noise=NOISE,
         )
@@ -556,7 +556,7 @@ for n_udim in tqdm(N_CORR_DIM_SWEEP, desc="Uncorrelated Dim sweep"):
             data = create_dataset(
                 theta,
                 n_points=N_POINTS,
-                n_correlated_dimensions=MAX_CORRELATED_DIMS,
+                n_correlated_dimensions=N_CORRELATED_DIMS,
                 n_uncorrelated_dimensions=n_udim,
                 noise=NOISE,
             )
