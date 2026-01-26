@@ -275,195 +275,195 @@ theta_values = np.linspace(0, np.pi, N_THETAS)
 
 # plt.savefig(savepath)  
 
-# ============================================================
-# EXPERIMENT 2: similarity vs n_dimensions
-# ============================================================
+## ============================================================
+## EXPERIMENT 2: similarity vs n_dimensions
+## ============================================================
 
-experiment = Experiment(
-    "Similarity vs CorrelatedDims - KRR - TransitionData",
-    "experiments"
-)
+# experiment = Experiment(
+#     "Similarity vs CorrelatedDims - KRR - TransitionData",
+#     "experiments"
+# )
 
-experiment.add_config(
-    seed=SEED,
-    n_points=N_POINTS,
-    n_repeat=N_REPEAT,
-    sweep="n_dimensions",
-    model=MODEL_NAME,
-    theta_ref=float(THETA_REF),
-    noise=NOISE,
-)
+# experiment.add_config(
+#     seed=SEED,
+#     n_points=N_POINTS,
+#     n_repeat=N_REPEAT,
+#     sweep="n_dimensions",
+#     model=MODEL_NAME,
+#     theta_ref=float(THETA_REF),
+#     noise=NOISE,
+# )
 
-for n_dim in tqdm(N_DIM_SWEEP, desc="Dim sweep"):
-    similarities_all = []
+# for n_dim in tqdm(N_DIM_SWEEP, desc="Dim sweep"):
+#     similarities_all = []
 
-    # theta datasets
-    datasets = []
-    for theta in theta_values:
-        data = create_dataset(
-            theta,
-            n_points=N_POINTS,
-            n_correlated_dimensions=N_CORRELATED_DIMS,
-            n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
-            noise=NOISE,
-        )
+#     # theta datasets
+#     datasets = []
+#     for theta in theta_values:
+#         data = create_dataset(
+#             theta,
+#             n_points=N_POINTS,
+#             n_correlated_dimensions=N_CORRELATED_DIMS,
+#             n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
+#             noise=NOISE,
+#         )
 
-        datasets.append(
-            TimeSeriesData(
-                X=data[:-1],
-                y=data[1:],
-                lag=1,
-                train_val_test_split=[0.5, 0.3, 0.2],
-                theta=theta,
-            )
-        )
+#         datasets.append(
+#             TimeSeriesData(
+#                 X=data[:-1],
+#                 y=data[1:],
+#                 lag=1,
+#                 train_val_test_split=[0.5, 0.3, 0.2],
+#                 theta=theta,
+#             )
+#         )
 
-    # hyperparams
-    def objective(trial):
-        bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
-        reg = trial.suggest_float("reg", 1e-12, 1e-4)
+#     # hyperparams
+#     def objective(trial):
+#         bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
+#         reg = trial.suggest_float("reg", 1e-12, 1e-4)
 
-        mse = 0.0
-        for ds in datasets:
-            X_tr, y_tr = ds.train_data()
-            X_va, y_va = ds.val_data()
+#         mse = 0.0
+#         for ds in datasets:
+#             X_tr, y_tr = ds.train_data()
+#             X_va, y_va = ds.val_data()
 
-            model = KernelRidgeRegression(
-                kernel=KERNEL,
-                bandwidth=bandwidth,
-                reg=reg,
-            )
-            model.fit(X_tr, y_tr)
-            mse += np.mean((model.predict(X_va) - y_va) ** 2)
+#             model = KernelRidgeRegression(
+#                 kernel=KERNEL,
+#                 bandwidth=bandwidth,
+#                 reg=reg,
+#             )
+#             model.fit(X_tr, y_tr)
+#             mse += np.mean((model.predict(X_va) - y_va) ** 2)
 
-        return mse
+#         return mse
 
-    study = optuna.create_study()
-    study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
-    best_params = study.best_params
+#     study = optuna.create_study()
+#     study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
+#     best_params = study.best_params
 
-    for r in range(N_REPEAT):
-        # reference
-        ref_data = create_dataset(
-            THETA_REF,
-            n_points=N_POINTS,
-            n_correlated_dimensions=n_dim,
-            n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
-            noise=NOISE,
-        )
+#     for r in range(N_REPEAT):
+#         # reference
+#         ref_data = create_dataset(
+#             THETA_REF,
+#             n_points=N_POINTS,
+#             n_correlated_dimensions=n_dim,
+#             n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
+#             noise=NOISE,
+#         )
 
-        ref_dataset = TimeSeriesData(
-            X=ref_data[:-1],
-            y=ref_data[1:],
-            lag=1,
-            train_val_test_split=[0.5, 0.3, 0.2],
-        )
+#         ref_dataset = TimeSeriesData(
+#             X=ref_data[:-1],
+#             y=ref_data[1:],
+#             lag=1,
+#             train_val_test_split=[0.5, 0.3, 0.2],
+#         )
 
-        # theta datasets
-        datasets = []
-        for theta in theta_values:
-            data = create_dataset(
-                theta,
-                n_points=N_POINTS,
-                n_correlated_dimensions=n_dim,
-                n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
-                noise=NOISE,
-            )
+#         # theta datasets
+#         datasets = []
+#         for theta in theta_values:
+#             data = create_dataset(
+#                 theta,
+#                 n_points=N_POINTS,
+#                 n_correlated_dimensions=n_dim,
+#                 n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
+#                 noise=NOISE,
+#             )
 
-            datasets.append(
-                TimeSeriesData(
-                    X=data[:-1],
-                    y=data[1:],
-                    lag=1,
-                    train_val_test_split=[0.5, 0.3, 0.2],
-                    theta=theta,
-                )
-            )
+#             datasets.append(
+#                 TimeSeriesData(
+#                     X=data[:-1],
+#                     y=data[1:],
+#                     lag=1,
+#                     train_val_test_split=[0.5, 0.3, 0.2],
+#                     theta=theta,
+#                 )
+#             )
 
-        # fit ref
-        model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
-        X_ref, y_ref = ref_dataset.full_data()
-        model_ref.fit(X_ref, y_ref)
+#         # fit ref
+#         model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
+#         X_ref, y_ref = ref_dataset.full_data()
+#         model_ref.fit(X_ref, y_ref)
 
-        ip11 = model_ref.inner_product(model_ref)
+#         ip11 = model_ref.inner_product(model_ref)
 
-        # similarities
-        sims = np.zeros(len(theta_values))
-        for i, ds in enumerate(datasets):
-            X, y = ds.full_data()
-            model = KernelRidgeRegression(kernel=KERNEL, **best_params)
-            model.fit(X, y)
+#         # similarities
+#         sims = np.zeros(len(theta_values))
+#         for i, ds in enumerate(datasets):
+#             X, y = ds.full_data()
+#             model = KernelRidgeRegression(kernel=KERNEL, **best_params)
+#             model.fit(X, y)
 
-            ip12 = model_ref.inner_product(model)
-            ip22 = model.inner_product(model)
+#             ip12 = model_ref.inner_product(model)
+#             ip22 = model.inner_product(model)
 
-            sims[i] = ip12/np.sqrt(ip11 * ip22)
+#             sims[i] = ip12/np.sqrt(ip11 * ip22)
 
-        similarities_all.append(sims)
+#         similarities_all.append(sims)
 
-    sims = np.stack(similarities_all)
+#     sims = np.stack(similarities_all)
 
-    experiment.add_result(
-        **{f"theta_sweep_ndim_{n_dim:.3f}": dict(
-            noise=float(NOISE),
-            n_corr_dim = n_dim,
-            n_uncorr_dim = N_UNCORRELATED_DIMS,
-            theta_ref=float(THETA_REF),
-            theta_values=theta_values.tolist(),
-            mean_similarities=sims.mean(axis=0).tolist(),
-            std_similarities=sims.std(axis=0).tolist(),
-            n_repeat=N_REPEAT,
-        )}
-    )
+#     experiment.add_result(
+#         **{f"theta_sweep_ndim_{n_dim:.3f}": dict(
+#             noise=float(NOISE),
+#             n_corr_dim = n_dim,
+#             n_uncorr_dim = N_UNCORRELATED_DIMS,
+#             theta_ref=float(THETA_REF),
+#             theta_values=theta_values.tolist(),
+#             mean_similarities=sims.mean(axis=0).tolist(),
+#             std_similarities=sims.std(axis=0).tolist(),
+#             n_repeat=N_REPEAT,
+#         )}
+#     )
 
-###################
-### Make figures
-###################
+# ###################
+# ### Make figures
+# ###################
 
-# Load latest
-corr_data_json = load_latest_results("experiments/Similarity vs CorrelatedDims - KRR - TransitionData")
+# # Load latest
+# corr_data_json = load_latest_results("experiments/Similarity vs CorrelatedDims - KRR - TransitionData")
 
-### Plot similarity for different noises
-corr_data_json["run_path"].joinpath("")
+# ### Plot similarity for different noises
+# corr_data_json["run_path"].joinpath("")
 
-if "figures" not in os.listdir(corr_data_json["run_path"]):
-    os.mkdir(corr_data_json["run_path"].joinpath("figures"))
+# if "figures" not in os.listdir(corr_data_json["run_path"]):
+#     os.mkdir(corr_data_json["run_path"].joinpath("figures"))
 
-for k, r in corr_data_json["results"].items():
-    plt.figure()
-    std = np.array(r["std_similarities"])
-    ci = 1.96*std/np.sqrt(len(std))
-    plt.errorbar(r["theta_values"], r["mean_similarities"], ci, marker="*")
-    plt.vlines(r["theta_ref"], 0, max(r["mean_similarities"]), "r")
-    plt.title(k)
-    plt.xlabel("Theta")
-    plt.ylabel("Similarity +- 95% ci")
+# for k, r in corr_data_json["results"].items():
+#     plt.figure()
+#     std = np.array(r["std_similarities"])
+#     ci = 1.96*std/np.sqrt(len(std))
+#     plt.errorbar(r["theta_values"], r["mean_similarities"], ci, marker="*")
+#     plt.vlines(r["theta_ref"], 0, max(r["mean_similarities"]), "r")
+#     plt.title(k)
+#     plt.xlabel("Theta")
+#     plt.ylabel("Similarity +- 95% ci")
 
-    savepath = corr_data_json["run_path"].joinpath("figures").joinpath(k + ".png")
+#     savepath = corr_data_json["run_path"].joinpath("figures").joinpath(k + ".png")
 
-    plt.savefig(savepath)    
+#     plt.savefig(savepath)    
 
-### Plot Similarity drop off
-plt.figure()
-x = []
-y = []
-std = []
+# ### Plot Similarity drop off
+# plt.figure()
+# x = []
+# y = []
+# std = []
 
-for k, r in corr_data_json["results"].items():
-    idx = np.argmin(np.abs(np.array(r["theta_values"]) - r["theta_ref"]))
-    x.append(r["n_corr_dim"])
-    y.append(r["mean_similarities"][idx])
-    std.append(r["std_similarities"][idx])
+# for k, r in corr_data_json["results"].items():
+#     idx = np.argmin(np.abs(np.array(r["theta_values"]) - r["theta_ref"]))
+#     x.append(r["n_corr_dim"])
+#     y.append(r["mean_similarities"][idx])
+#     std.append(r["std_similarities"][idx])
 
-ci = [1.96*s/np.sqrt(len(std)) for s in std]
+# ci = [1.96*s/np.sqrt(len(std)) for s in std]
 
-plt.errorbar(x, y, ci, marker="*")
-plt.xlabel("Number of dimensions")
-plt.ylabel("Similarity at $\\theta_{ref}$")
+# plt.errorbar(x, y, ci, marker="*")
+# plt.xlabel("Number of dimensions")
+# plt.ylabel("Similarity at $\\theta_{ref}$")
 
-savepath = corr_data_json["run_path"].joinpath("figures").joinpath("similarity_at_ref" + ".png")
+# savepath = corr_data_json["run_path"].joinpath("figures").joinpath("similarity_at_ref" + ".png")
 
-plt.savefig(savepath)  
+# plt.savefig(savepath)  
 
 # ============================================================
 # EXPERIMENT 3: similarity vs n_uncorrelated_dimensions
@@ -495,7 +495,7 @@ for n_udim in tqdm(N_CORR_DIM_SWEEP, desc="Uncorrelated Dim sweep"):
             theta,
             n_points=N_POINTS,
             n_correlated_dimensions=N_CORRELATED_DIMS,
-            n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
+            n_uncorrelated_dimensions=n_udim,
             noise=NOISE,
         )
 
