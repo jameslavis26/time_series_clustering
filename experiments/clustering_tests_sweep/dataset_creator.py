@@ -6,7 +6,6 @@ def create_dataset(
     n_correlated_dimensions: int,
     n_uncorrelated_dimensions: int,
     noise: float = 0.0,
-    damping: float = 0.9,
     seed: int | None = None,
 ):
     """
@@ -15,8 +14,6 @@ def create_dataset(
     Dynamics are nonlinear but globally stable via tanh damping.
     """
 
-    if not (0 < damping < 1):
-        raise ValueError("damping must be in (0, 1)")
     if n_points <= 0:
         raise ValueError("n_points must be positive")
 
@@ -35,21 +32,21 @@ def create_dataset(
         # ------------------------------
         for i in range(n_correlated_dimensions):
             x_next[i] += np.cos(theta * x[i]) * x[i]
+            if i > 0:
+                x_next[i] += -np.sin(theta*x[i-1])
 
-            if i + 1 < n_correlated_dimensions:
-                x_next[i] += np.sin(theta * x[i + 1])
-                x_next[i + 1] += -np.sin(theta * x[i])
+            if i + 1 < n_dim:
+                x_next[i] += np.sin(theta*x[i+1])
 
         # ------------------------------
         # Uncorrelated dimensions
         # ------------------------------
         for i in range(n_correlated_dimensions, n_dim):
-            x_next[i] = np.cos(theta * x[i]) * x[i]
+            x_next[i] = np.cos(theta * x[i])
 
         # ------------------------------
         # Damping + noise (bounded step)
         # ------------------------------
-        x_next = damping * np.tanh(x_next)
         x_next += rng.normal(0.0, noise, size=n_dim)
 
         X[t + 1] = x_next
