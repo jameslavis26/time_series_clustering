@@ -54,7 +54,7 @@ def load_latest_results(experiment_root):
 SEED = 0
 
 # default
-N_POINTS = 400
+N_POINTS = 300
 THETA_REF = np.pi/2
 NOISE = 0.5
 N_CORRELATED_DIMS = 3
@@ -67,7 +67,7 @@ MAX_CORRELATED_DIMS = 10
 MAX_UNCORRELATED_DIMS = 10
 
 # data
-NOISE_SWEEP = np.linspace(1e-3, 3, 10)
+NOISE_SWEEP = np.linspace(1e-3, 3, 30)
 N_DIM_SWEEP = np.arange(3, MAX_CORRELATED_DIMS)
 N_CORR_DIM_SWEEP = np.arange(0, MAX_UNCORRELATED_DIMS)
 

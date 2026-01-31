@@ -17,7 +17,7 @@ def create_dataset(
     if n_points <= 0:
         raise ValueError("n_points must be positive")
 
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng()
 
     n_dim = n_correlated_dimensions + n_uncorrelated_dimensions
     X = np.empty((n_points + 1, n_dim))
@@ -31,7 +31,7 @@ def create_dataset(
         # Correlated nonlinear dynamics
         # ------------------------------
         for i in range(n_correlated_dimensions):
-            x_next[i] += np.cos(theta * x[i]) * x[i]
+            x_next[i] += np.cos(theta * x[i]) 
             if i > 0:
                 x_next[i] += -np.sin(theta*x[i-1])
 
