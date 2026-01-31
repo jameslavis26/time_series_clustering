@@ -56,7 +56,7 @@ SEED = 0
 # default
 N_POINTS = 300
 THETA_REF = np.pi/2
-NOISE = 0.5
+NOISE = 0
 N_CORRELATED_DIMS = 3
 N_UNCORRELATED_DIMS = 0
 
@@ -78,7 +78,7 @@ N_TRIALS = 30
 MODEL_NAME = "KRR"
 KERNEL = "rbf"
 
-EXPERIMENTS_TO_RUN = [1]
+EXPERIMENTS_TO_RUN = [2]
 
 # ============================================================
 # SETUP
