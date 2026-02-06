@@ -60,6 +60,10 @@ NOISE = 0
 N_CORRELATED_DIMS = 3
 N_UNCORRELATED_DIMS = 0
 
+# Tuning
+MIN_BANDWIDTH = 0.1
+MAX_BANDWIDTH = 4
+
 # sweeps
 N_THETAS = 30
 N_REPEAT = 100
@@ -134,7 +138,7 @@ if 1 in EXPERIMENTS_TO_RUN:
 
         # hyperparams
         def objective(trial):
-            bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
+            bandwidth = trial.suggest_float("bandwidth", MIN_BANDWIDTH, MAX_BANDWIDTH)
             reg = trial.suggest_float("reg", 1e-12, 1e-4)
 
             mse = 0.0
@@ -226,6 +230,8 @@ if 1 in EXPERIMENTS_TO_RUN:
                 mean_similarities=sims.mean(axis=0).tolist(),
                 std_similarities=sims.std(axis=0).tolist(),
                 n_repeat=N_REPEAT,
+                bandwidth = best_params["bandwidth"],
+                reg = best_params["reg"]
             )}
         )
 
@@ -324,7 +330,7 @@ if 2 in EXPERIMENTS_TO_RUN:
 
         # hyperparams
         def objective(trial):
-            bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
+            bandwidth = trial.suggest_float("bandwidth", MIN_BANDWIDTH, MAX_BANDWIDTH)
             reg = trial.suggest_float("reg", 1e-12, 1e-4)
 
             mse = 0.0
@@ -417,6 +423,8 @@ if 2 in EXPERIMENTS_TO_RUN:
                 mean_similarities=sims.mean(axis=0).tolist(),
                 std_similarities=sims.std(axis=0).tolist(),
                 n_repeat=N_REPEAT,
+                bandwidth = best_params["bandwidth"],
+                reg = best_params["reg"]
             )}
         )
 
@@ -516,7 +524,7 @@ if 3 in EXPERIMENTS_TO_RUN:
 
         # hyperparams
         def objective(trial):
-            bandwidth = trial.suggest_float("bandwidth", 0.1, 4.0)
+            bandwidth = trial.suggest_float("bandwidth", MIN_BANDWIDTH, MAX_BANDWIDTH)
             reg = trial.suggest_float("reg", 1e-12, 1e-4)
 
             mse = 0.0
@@ -609,6 +617,8 @@ if 3 in EXPERIMENTS_TO_RUN:
                 mean_similarities=sims.mean(axis=0).tolist(),
                 std_similarities=sims.std(axis=0).tolist(),
                 n_repeat=N_REPEAT,
+                bandwidth = best_params["bandwidth"],
+                reg = best_params["reg"]
             )}
         )
 
