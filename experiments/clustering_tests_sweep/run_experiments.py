@@ -62,7 +62,7 @@ N_UNCORRELATED_DIMS = 0
 
 # Tuning
 MIN_BANDWIDTH = 0.1
-MAX_BANDWIDTH = 4
+MAX_BANDWIDTH = 10
 
 # sweeps
 N_THETAS = 30
@@ -82,7 +82,7 @@ N_TRIALS = 30
 MODEL_NAME = "KRR"
 KERNEL = "rbf"
 
-EXPERIMENTS_TO_RUN = [2]
+EXPERIMENTS_TO_RUN = [1,2,3]
 
 # ============================================================
 # SETUP
