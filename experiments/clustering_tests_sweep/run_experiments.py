@@ -62,16 +62,16 @@ N_UNCORRELATED_DIMS = 0
 
 # Tuning
 MIN_BANDWIDTH = 0.1
-MAX_BANDWIDTH = 4
+MAX_BANDWIDTH = 10
 
 # sweeps
-N_THETAS = 30
+N_THETAS = 20
 N_REPEAT = 100
 MAX_CORRELATED_DIMS = 10
 MAX_UNCORRELATED_DIMS = 10
 
 # data
-NOISE_SWEEP = np.linspace(1e-3, 1, 30)
+NOISE_SWEEP = np.linspace(1e-3, 2, 20)
 N_DIM_SWEEP = np.arange(3, MAX_CORRELATED_DIMS)
 N_CORR_DIM_SWEEP = np.arange(0, MAX_UNCORRELATED_DIMS)
 
@@ -82,7 +82,7 @@ N_TRIALS = 30
 MODEL_NAME = "KRR"
 KERNEL = "rbf"
 
-EXPERIMENTS_TO_RUN = [2]
+EXPERIMENTS_TO_RUN = [1, 2, 3]
 
 # ============================================================
 # SETUP
@@ -96,9 +96,10 @@ theta_values = np.linspace(0, np.pi, N_THETAS)
 # EXPERIMENT 1: similarity vs theta (averaged, noise sweep)
 # ============================================================
 if 1 in EXPERIMENTS_TO_RUN:
+    EXP_NAME = "Similarity vs Noise - KRR - TransitionData - Tune All"
     print("Running Experiment 1")
     experiment = Experiment(
-        "Similarity vs Theta - KRR - TransitionData (Averaged)",
+        EXP_NAME,
         "experiments"
     )
 
@@ -114,51 +115,6 @@ if 1 in EXPERIMENTS_TO_RUN:
 
     for noise in tqdm(NOISE_SWEEP, desc="Noise sweep"):
         similarities_all = []
-
-        # theta datasets
-        datasets = []
-        for theta in theta_values:
-            data = create_dataset(
-                theta,
-                n_points=N_POINTS,
-                n_correlated_dimensions=N_CORRELATED_DIMS,
-                n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
-                noise=noise,
-            )
-
-            datasets.append(
-                TimeSeriesData(
-                    X=data[:-1],
-                    y=data[1:],
-                    lag=1,
-                    train_val_test_split=[0.5, 0.3, 0.2],
-                    theta=theta,
-                )
-            )
-
-        # hyperparams
-        def objective(trial):
-            bandwidth = trial.suggest_float("bandwidth", MIN_BANDWIDTH, MAX_BANDWIDTH)
-            reg = trial.suggest_float("reg", 1e-12, 1e-4)
-
-            mse = 0.0
-            for ds in datasets:
-                X_tr, y_tr = ds.train_data()
-                X_va, y_va = ds.val_data()
-
-                model = KernelRidgeRegression(
-                    kernel=KERNEL,
-                    bandwidth=bandwidth,
-                    reg=reg,
-                )
-                model.fit(X_tr, y_tr)
-                mse += np.mean((model.predict(X_va) - y_va) ** 2)
-
-            return mse
-
-        study = optuna.create_study()
-        study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
-        best_params = study.best_params
 
         for r in range(N_REPEAT):
             # reference
@@ -198,17 +154,49 @@ if 1 in EXPERIMENTS_TO_RUN:
                     )
                 )
 
-
-            # fit ref
-            model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
-            X_ref, y_ref = ref_dataset.full_data()
-            model_ref.fit(X_ref, y_ref)
-
-            ip11 = model_ref.inner_product(model_ref)
-
             # similarities
             sims = np.zeros(len(theta_values))
             for i, ds in enumerate(datasets):
+                # hyperparams
+                def objective(trial):
+                    bandwidth = trial.suggest_float("bandwidth", MIN_BANDWIDTH, MAX_BANDWIDTH)
+                    reg = trial.suggest_float("reg", 1e-12, 1e-4)
+
+                    mse = 0.0
+
+                    X_tr, y_tr = ref_dataset.train_data()
+                    X_va, y_va = ref_dataset.val_data()
+
+                    model = KernelRidgeRegression(
+                        kernel=KERNEL,
+                        bandwidth=bandwidth,
+                        reg=reg,
+                    )
+                    model.fit(X_tr, y_tr)
+                    mse += np.mean((model.predict(X_va) - y_va) ** 2)
+
+                    X_tr, y_tr = ds.train_data()
+                    X_va, y_va = ds.val_data()
+
+                    model = KernelRidgeRegression(
+                        kernel=KERNEL,
+                        bandwidth=bandwidth,
+                        reg=reg,
+                    )
+                    model.fit(X_tr, y_tr)
+                    mse += np.mean((model.predict(X_va) - y_va) ** 2)
+
+                    return mse
+
+                study = optuna.create_study()
+                study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
+                best_params = study.best_params
+
+                X_ref, y_ref = ref_dataset.full_data()
+                model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
+                model_ref.fit(X_ref, y_ref)
+                ip11 = model_ref.inner_product(model_ref)
+
                 X, y = ds.full_data()
                 model = KernelRidgeRegression(kernel=KERNEL, **best_params)
                 model.fit(X, y)
@@ -240,7 +228,7 @@ if 1 in EXPERIMENTS_TO_RUN:
     ###################
 
     # Load latest
-    noise_data_json = load_latest_results("experiments/Similarity vs Theta - KRR - TransitionData (Averaged)")
+    noise_data_json = load_latest_results("experiments/" + EXP_NAME)
 
     ### Plot similarity for different noises
     noise_data_json["run_path"].joinpath("")
@@ -289,8 +277,9 @@ if 1 in EXPERIMENTS_TO_RUN:
 # ============================================================
 if 2 in EXPERIMENTS_TO_RUN:
     print("Running Experiment 2")
+    EXP_NAME = "Similarity vs CorrelatedDims - KRR - TransitionData - Tune All"
     experiment = Experiment(
-        "Similarity vs CorrelatedDims - KRR - TransitionData",
+        EXP_NAME,
         "experiments"
     )
 
@@ -306,51 +295,6 @@ if 2 in EXPERIMENTS_TO_RUN:
 
     for n_dim in tqdm(N_DIM_SWEEP, desc="Dim sweep"):
         similarities_all = []
-
-        # theta datasets
-        datasets = []
-        for theta in theta_values:
-            data = create_dataset(
-                theta,
-                n_points=N_POINTS,
-                n_correlated_dimensions=N_CORRELATED_DIMS,
-                n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
-                noise=NOISE,
-            )
-
-            datasets.append(
-                TimeSeriesData(
-                    X=data[:-1],
-                    y=data[1:],
-                    lag=1,
-                    train_val_test_split=[0.5, 0.3, 0.2],
-                    theta=theta,
-                )
-            )
-
-        # hyperparams
-        def objective(trial):
-            bandwidth = trial.suggest_float("bandwidth", MIN_BANDWIDTH, MAX_BANDWIDTH)
-            reg = trial.suggest_float("reg", 1e-12, 1e-4)
-
-            mse = 0.0
-            for ds in datasets:
-                X_tr, y_tr = ds.train_data()
-                X_va, y_va = ds.val_data()
-
-                model = KernelRidgeRegression(
-                    kernel=KERNEL,
-                    bandwidth=bandwidth,
-                    reg=reg,
-                )
-                model.fit(X_tr, y_tr)
-                mse += np.mean((model.predict(X_va) - y_va) ** 2)
-
-            return mse
-
-        study = optuna.create_study()
-        study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
-        best_params = study.best_params
 
         for r in range(N_REPEAT):
             # reference
@@ -390,16 +334,49 @@ if 2 in EXPERIMENTS_TO_RUN:
                     )
                 )
 
-            # fit ref
-            model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
-            X_ref, y_ref = ref_dataset.full_data()
-            model_ref.fit(X_ref, y_ref)
-
-            ip11 = model_ref.inner_product(model_ref)
-
             # similarities
             sims = np.zeros(len(theta_values))
             for i, ds in enumerate(datasets):
+                # hyperparams
+                def objective(trial):
+                    bandwidth = trial.suggest_float("bandwidth", MIN_BANDWIDTH, MAX_BANDWIDTH)
+                    reg = trial.suggest_float("reg", 1e-12, 1e-4)
+
+                    mse = 0.0
+
+                    X_tr, y_tr = ref_dataset.train_data()
+                    X_va, y_va = ref_dataset.val_data()
+
+                    model = KernelRidgeRegression(
+                        kernel=KERNEL,
+                        bandwidth=bandwidth,
+                        reg=reg,
+                    )
+                    model.fit(X_tr, y_tr)
+                    mse += np.mean((model.predict(X_va) - y_va) ** 2)
+
+                    X_tr, y_tr = ds.train_data()
+                    X_va, y_va = ds.val_data()
+
+                    model = KernelRidgeRegression(
+                        kernel=KERNEL,
+                        bandwidth=bandwidth,
+                        reg=reg,
+                    )
+                    model.fit(X_tr, y_tr)
+                    mse += np.mean((model.predict(X_va) - y_va) ** 2)
+
+                    return mse
+
+                study = optuna.create_study()
+                study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
+                best_params = study.best_params
+
+                X_ref, y_ref = ref_dataset.full_data()
+                model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
+                model_ref.fit(X_ref, y_ref)
+                ip11 = model_ref.inner_product(model_ref)
+
                 X, y = ds.full_data()
                 model = KernelRidgeRegression(kernel=KERNEL, **best_params)
                 model.fit(X, y)
@@ -433,7 +410,7 @@ if 2 in EXPERIMENTS_TO_RUN:
     ###################
 
     # Load latest
-    corr_data_json = load_latest_results("experiments/Similarity vs CorrelatedDims - KRR - TransitionData")
+    corr_data_json = load_latest_results("experiments/"+ EXP_NAME)
 
     ### Plot similarity for different noises
     corr_data_json["run_path"].joinpath("")
@@ -482,8 +459,9 @@ if 2 in EXPERIMENTS_TO_RUN:
 # ============================================================
 if 3 in EXPERIMENTS_TO_RUN:
     print("Running Experiment 3")
+    EXP_NAME = "Similarity vs UncorrelatedDims - KRR - TransitionData - Tune All"
     experiment = Experiment(
-        "Similarity vs UncorrelatedDims - KRR - TransitionData",
+        EXP_NAME,
         "experiments"
     )
 
@@ -500,51 +478,6 @@ if 3 in EXPERIMENTS_TO_RUN:
 
     for n_udim in tqdm(N_CORR_DIM_SWEEP, desc="Uncorrelated Dim sweep"):
         similarities_all = []
-
-        # theta datasets
-        datasets = []
-        for theta in theta_values:
-            data = create_dataset(
-                theta,
-                n_points=N_POINTS,
-                n_correlated_dimensions=N_CORRELATED_DIMS,
-                n_uncorrelated_dimensions=n_udim,
-                noise=NOISE,
-            )
-
-            datasets.append(
-                TimeSeriesData(
-                    X=data[:-1],
-                    y=data[1:],
-                    lag=1,
-                    train_val_test_split=[0.5, 0.3, 0.2],
-                    theta=theta,
-                )
-            )
-
-        # hyperparams
-        def objective(trial):
-            bandwidth = trial.suggest_float("bandwidth", MIN_BANDWIDTH, MAX_BANDWIDTH)
-            reg = trial.suggest_float("reg", 1e-12, 1e-4)
-
-            mse = 0.0
-            for ds in datasets:
-                X_tr, y_tr = ds.train_data()
-                X_va, y_va = ds.val_data()
-
-                model = KernelRidgeRegression(
-                    kernel=KERNEL,
-                    bandwidth=bandwidth,
-                    reg=reg,
-                )
-                model.fit(X_tr, y_tr)
-                mse += np.mean((model.predict(X_va) - y_va) ** 2)
-
-            return mse
-
-        study = optuna.create_study()
-        study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
-        best_params = study.best_params
 
         for r in range(N_REPEAT):
             # reference
@@ -584,16 +517,49 @@ if 3 in EXPERIMENTS_TO_RUN:
                     )
                 )
 
-            # fit ref
-            model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
-            X_ref, y_ref = ref_dataset.full_data()
-            model_ref.fit(X_ref, y_ref)
-
-            ip11 = model_ref.inner_product(model_ref)
-
             # similarities
             sims = np.zeros(len(theta_values))
             for i, ds in enumerate(datasets):
+                # hyperparams
+                def objective(trial):
+                    bandwidth = trial.suggest_float("bandwidth", MIN_BANDWIDTH, MAX_BANDWIDTH)
+                    reg = trial.suggest_float("reg", 1e-12, 1e-4)
+
+                    mse = 0.0
+
+                    X_tr, y_tr = ref_dataset.train_data()
+                    X_va, y_va = ref_dataset.val_data()
+
+                    model = KernelRidgeRegression(
+                        kernel=KERNEL,
+                        bandwidth=bandwidth,
+                        reg=reg,
+                    )
+                    model.fit(X_tr, y_tr)
+                    mse += np.mean((model.predict(X_va) - y_va) ** 2)
+
+                    X_tr, y_tr = ds.train_data()
+                    X_va, y_va = ds.val_data()
+
+                    model = KernelRidgeRegression(
+                        kernel=KERNEL,
+                        bandwidth=bandwidth,
+                        reg=reg,
+                    )
+                    model.fit(X_tr, y_tr)
+                    mse += np.mean((model.predict(X_va) - y_va) ** 2)
+
+                    return mse
+
+                study = optuna.create_study()
+                study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
+                best_params = study.best_params
+
+                X_ref, y_ref = ref_dataset.full_data()
+                model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
+                model_ref.fit(X_ref, y_ref)
+                ip11 = model_ref.inner_product(model_ref)
+
                 X, y = ds.full_data()
                 model = KernelRidgeRegression(kernel=KERNEL, **best_params)
                 model.fit(X, y)
@@ -627,7 +593,7 @@ if 3 in EXPERIMENTS_TO_RUN:
     ###################
 
     # Load latest
-    uncorr_data_json = load_latest_results("experiments/Similarity vs UncorrelatedDims - KRR - TransitionData")
+    uncorr_data_json = load_latest_results("experiments/" + EXP_NAME)
 
     ### Plot similarity for different noises
     uncorr_data_json["run_path"].joinpath("")
