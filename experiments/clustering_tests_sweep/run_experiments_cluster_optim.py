@@ -96,7 +96,7 @@ theta_values = np.linspace(0, np.pi, N_THETAS)
 # EXPERIMENT 1: similarity vs theta (averaged, noise sweep)
 # ============================================================
 if 1 in EXPERIMENTS_TO_RUN:
-    EXP_NAME = "Similarity vs Noise - KRR - TransitionData - Tune All"
+    EXP_NAME = "Similarity vs Noise - KRR - TransitionData - Tune All - Tune Similarity"
     print("Running Experiment 1")
     experiment = Experiment(
         EXP_NAME,
@@ -277,7 +277,7 @@ if 1 in EXPERIMENTS_TO_RUN:
 # ============================================================
 if 2 in EXPERIMENTS_TO_RUN:
     print("Running Experiment 2")
-    EXP_NAME = "Similarity vs CorrelatedDims - KRR - TransitionData - Tune All"
+    EXP_NAME = "Similarity vs CorrelatedDims - KRR - TransitionData - Tune All - Tune Similarity"
     experiment = Experiment(
         EXP_NAME,
         "experiments"
@@ -459,7 +459,7 @@ if 2 in EXPERIMENTS_TO_RUN:
 # ============================================================
 if 3 in EXPERIMENTS_TO_RUN:
     print("Running Experiment 3")
-    EXP_NAME = "Similarity vs UncorrelatedDims - KRR - TransitionData - Tune All"
+    EXP_NAME = "Similarity vs UncorrelatedDims - KRR - TransitionData - Tune All - Tune Similarity"
     experiment = Experiment(
         EXP_NAME,
         "experiments"
