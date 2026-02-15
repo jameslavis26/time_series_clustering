@@ -56,7 +56,7 @@ SEED = 0
 # default
 N_POINTS = 300
 THETA_REF = np.pi/2
-NOISE = 0
+NOISE = 1
 N_CORRELATED_DIMS = 3
 N_UNCORRELATED_DIMS = 0
 
@@ -82,7 +82,7 @@ N_TRIALS = 30
 MODEL_NAME = "KRR"
 KERNEL = "rbf"
 
-EXPERIMENTS_TO_RUN = [1, 2, 3]
+EXPERIMENTS_TO_RUN = [2, 3]
 
 # ============================================================
 # SETUP
@@ -186,7 +186,7 @@ if 1 in EXPERIMENTS_TO_RUN:
 
                     sim = ip12/np.sqrt(ip11 * ip22)
 
-                    return sim
+                    return 1 - sim
 
                 study = optuna.create_study()
                 study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
@@ -366,7 +366,10 @@ if 2 in EXPERIMENTS_TO_RUN:
 
                     sim = ip12/np.sqrt(ip11 * ip22)
 
-                    return sim
+                    if np.isnan(sim):
+                        return 0
+
+                    return 1 - sim
 
                 study = optuna.create_study()
                 study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
@@ -549,7 +552,7 @@ if 3 in EXPERIMENTS_TO_RUN:
 
                     sim = ip12/np.sqrt(ip11 * ip22)
 
-                    return sim
+                    return 1 - sim
 
                 study = optuna.create_study()
                 study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)

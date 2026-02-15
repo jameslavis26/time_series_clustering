@@ -82,7 +82,7 @@ N_TRIALS = 30
 MODEL_NAME = "KRR"
 KERNEL = "rbf"
 
-EXPERIMENTS_TO_RUN = [1, 2, 3]
+EXPERIMENTS_TO_RUN = [3]
 
 # ============================================================
 # SETUP
