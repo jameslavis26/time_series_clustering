@@ -56,7 +56,7 @@ SEED = 0
 # default
 N_POINTS = 300
 THETA_REF = np.pi/2
-NOISE = 0
+NOISE = 0.2
 N_CORRELATED_DIMS = 3
 N_UNCORRELATED_DIMS = 0
 
@@ -82,7 +82,7 @@ N_TRIALS = 30
 MODEL_NAME = "KRR"
 KERNEL = "rbf"
 
-EXPERIMENTS_TO_RUN = [3]
+EXPERIMENTS_TO_RUN = [3, 4]
 
 # ============================================================
 # SETUP
@@ -637,8 +637,143 @@ if 3 in EXPERIMENTS_TO_RUN:
 
     plt.savefig(savepath)  
 
+# ============================================================
+# EXPERIMENT 4: mse vs n_dimensions
+# ============================================================
+if 4 in EXPERIMENTS_TO_RUN:
+    print("Running Experiment 4")
+    EXP_NAME = "MSE vs CorrelatedDims - KRR - Tune All"
+    experiment = Experiment(
+        EXP_NAME,
+        "experiments"
+    )
+
+    experiment.add_config(
+        seed=SEED,
+        n_points=N_POINTS,
+        n_repeat=N_REPEAT,
+        sweep="n_dimensions",
+        model=MODEL_NAME,
+        theta_ref=float(THETA_REF),
+        noise=NOISE,
+    )
+
+    for n_dim in tqdm(N_DIM_SWEEP, desc="Dim sweep"):
+        train_error_all = []
+        test_error_all = []
+
+        for r in range(N_REPEAT):
+            # reference
+            ref_data = create_dataset(
+                THETA_REF,
+                n_points=N_POINTS,
+                n_correlated_dimensions=n_dim,
+                n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
+                noise=NOISE,
+            )
+
+            ref_dataset = TimeSeriesData(
+                X=ref_data[:-1],
+                y=ref_data[1:],
+                lag=1,
+                train_val_test_split=[0.5, 0.3, 0.2],
+            )
+
+            X_tr, y_tr = ref_dataset.train_data()
+            X_va, y_va = ref_dataset.val_data()
+
+            def objective(trial):
+                bandwidth = trial.suggest_float("bandwidth", MIN_BANDWIDTH, MAX_BANDWIDTH)
+                reg = trial.suggest_float("reg", 1e-12, 1e-4)
+
+                model = KernelRidgeRegression(
+                    kernel=KERNEL,
+                    bandwidth=bandwidth,
+                    reg=reg,
+                )
+                model.fit(X_tr, y_tr)
+                mse = np.mean((model.predict(X_va) - y_va) ** 2)
+
+                return mse
+            
+            X_train = np.concatenate([X_tr, X_va])
+            y_train = np.concatenate([y_tr, y_va])
+
+            X_test, y_test = ref_dataset.test_data()
+
+            study = optuna.create_study()
+            study.optimize(objective, n_trials=N_TRIALS, n_jobs=-1)
+            best_params = study.best_params
+
+            model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
+            model_ref.fit(X_train, y_train)
+
+            training_error = np.mean((model_ref.predict(X_train) - y_train) ** 2)
+            test_error = np.mean((model_ref.predict(X_test) - y_test) ** 2)
+
+            train_error_all.append(training_error)
+            test_error_all.append(test_error)
+
+        experiment.add_result(
+            **{f"theta_sweep_ndim_{n_dim:.3f}": dict(
+                noise=float(NOISE),
+                n_corr_dim = n_dim,
+                n_uncorr_dim = N_UNCORRELATED_DIMS,
+                theta_ref=float(THETA_REF),
+                train_error = float(np.mean(train_error_all)),
+                train_error_std = float(np.std(train_error_all)),
+                test_error = float(np.mean(test_error_all)),
+                test_error_std = float(np.std(test_error_all)),
+                n_repeat=N_REPEAT,
+                bandwidth = best_params["bandwidth"],
+                reg = best_params["reg"]
+            )}
+        )
+
+    ###################
+    ### Make figures
+    ###################
+
+    # Load latest
+    data_json = load_latest_results("experiments/"+ EXP_NAME)
+
+    ### Plot similarity for different noises
+    data_json["run_path"].joinpath("")
+
+    if "figures" not in os.listdir(data_json["run_path"]):
+        os.mkdir(data_json["run_path"].joinpath("figures"))   
+
+    ### Plot MSE
+    dims = []
+    train_error = []
+    train_error_std = []
+    test_error = []
+    test_error_std = []
+
+
+    for k, r in data_json["results"].items():
+        dims.append(r["n_corr_dim"])
+        train_error.append(r["train_error"])
+        train_error_std.append(r["train_error_std"])
+        test_error.append(r["test_error"])
+        test_error_std.append(r["test_error_std"])
+
+    ci_train = [1.96*s/np.sqrt(N_REPEAT) for s in train_error_std]
+    ci_test = [1.96*s/np.sqrt(N_REPEAT) for s in test_error_std]
+
+    plt.errorbar(dims, train_error, ci_train, marker="*")
+    plt.errorbar(dims, test_error, ci_test, marker="*")
+    plt.xlabel("Number of dimensions")
+    plt.ylabel("MSE at $\\theta_{ref}$")
+    plt.legend(["Train Error", "Test Error"])
+
+    savepath = data_json["run_path"].joinpath("figures").joinpath("mse_at_ref" + ".png")
+
+    plt.savefig(savepath)  
+
+
 # # ============================================================
-# # EXPERIMENT 2: similarity vs n_correlated_dimensions
+# # EXPERIMENT 2: similarity vs n_correlated_dimensions         
 # # ============================================================
 
 # experiment = Experiment(
