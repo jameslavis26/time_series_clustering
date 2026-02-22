@@ -54,7 +54,7 @@ def load_latest_results(experiment_root):
 SEED = 0
 
 # default
-N_POINTS = 300
+N_POINTS = 600
 THETA_REF = np.pi/2
 NOISE = 0.2
 N_CORRELATED_DIMS = 3
@@ -82,7 +82,7 @@ N_TRIALS = 30
 MODEL_NAME = "KRR"
 KERNEL = "rbf"
 
-EXPERIMENTS_TO_RUN = [3, 4]
+EXPERIMENTS_TO_RUN = [2, 4]
 
 # ============================================================
 # SETUP
@@ -760,7 +760,7 @@ if 4 in EXPERIMENTS_TO_RUN:
 
     ci_train = [1.96*s/np.sqrt(N_REPEAT) for s in train_error_std]
     ci_test = [1.96*s/np.sqrt(N_REPEAT) for s in test_error_std]
-
+    plt.figure()
     plt.errorbar(dims, train_error, ci_train, marker="*")
     plt.errorbar(dims, test_error, ci_test, marker="*")
     plt.xlabel("Number of dimensions")
