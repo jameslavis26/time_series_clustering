@@ -54,7 +54,7 @@ def load_latest_results(experiment_root):
 SEED = 0
 
 # default
-N_POINTS = 600
+N_POINTS = 1000
 THETA_REF = np.pi/2
 NOISE = 0.2
 N_CORRELATED_DIMS = 3
@@ -65,8 +65,8 @@ MIN_BANDWIDTH = 0.1
 MAX_BANDWIDTH = 10
 
 # sweeps
-N_THETAS = 20
-N_REPEAT = 100
+N_THETAS = 10
+N_REPEAT = 50
 MAX_CORRELATED_DIMS = 10
 MAX_UNCORRELATED_DIMS = 10
 
