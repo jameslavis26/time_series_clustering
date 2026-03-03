@@ -54,7 +54,7 @@ def load_latest_results(experiment_root):
 SEED = 0
 
 # default
-N_POINTS = 300
+N_POINTS = 1000
 THETA_REF = np.pi/2
 NOISE = 0.2
 N_CORRELATED_DIMS = 3
