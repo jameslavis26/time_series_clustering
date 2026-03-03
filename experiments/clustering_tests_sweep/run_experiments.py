@@ -12,7 +12,7 @@ from time_series.evaluators import MeanSquaredError
 
 from experiment_logging import Experiment
 from time_series_clustering import TimeSeriesClustering
-from dataset_creator import create_dataset
+from dataset_creator import create_dataset, dynamics_sincos, time_series_generator
 from time_series.data_handlers import TimeSeriesData
 
 import optuna
@@ -54,7 +54,7 @@ def load_latest_results(experiment_root):
 SEED = 0
 
 # default
-N_POINTS = 1000
+N_POINTS = 300
 THETA_REF = np.pi/2
 NOISE = 0.2
 N_CORRELATED_DIMS = 3
@@ -65,8 +65,8 @@ MIN_BANDWIDTH = 0.1
 MAX_BANDWIDTH = 10
 
 # sweeps
-N_THETAS = 10
-N_REPEAT = 50
+N_THETAS = 20
+N_REPEAT = 100
 MAX_CORRELATED_DIMS = 10
 MAX_UNCORRELATED_DIMS = 10
 
@@ -82,7 +82,7 @@ N_TRIALS = 30
 MODEL_NAME = "KRR"
 KERNEL = "rbf"
 
-EXPERIMENTS_TO_RUN = [2, 4]
+EXPERIMENTS_TO_RUN = [4]
 
 # ============================================================
 # SETUP
@@ -659,17 +659,25 @@ if 4 in EXPERIMENTS_TO_RUN:
     )
 
     for n_dim in tqdm(N_DIM_SWEEP, desc="Dim sweep"):
+        train_mse_all = []
+        test_mse_all = []
+
         train_error_all = []
         test_error_all = []
 
         for r in range(N_REPEAT):
             # reference
-            ref_data = create_dataset(
+            dynamics_func = dynamics_sincos(
                 THETA_REF,
-                n_points=N_POINTS,
                 n_correlated_dimensions=n_dim,
                 n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
-                noise=NOISE,
+            )
+
+            ref_data = time_series_generator(
+                dynamics_func,
+                x0 = np.random.uniform(-1.0, 1.0, size=n_dim + N_UNCORRELATED_DIMS),
+                n_points=N_POINTS,
+                noise=NOISE
             )
 
             ref_dataset = TimeSeriesData(
@@ -708,8 +716,16 @@ if 4 in EXPERIMENTS_TO_RUN:
             model_ref = KernelRidgeRegression(kernel=KERNEL, **best_params)
             model_ref.fit(X_train, y_train)
 
-            training_error = np.mean((model_ref.predict(X_train) - y_train) ** 2)
-            test_error = np.mean((model_ref.predict(X_test) - y_test) ** 2)
+            training_mse = np.mean((model_ref.predict(X_train) - y_train) ** 2)
+            test_mse = np.mean((model_ref.predict(X_test) - y_test) ** 2)
+
+            train_mse_all.append(training_mse)
+            test_mse_all.append(test_mse)
+
+            # print(X_train.shape, model_ref.predict(X_train).shape, np.apply_along_axis(dynamics_func, 1, X_train.squeeze()).shape)
+
+            training_error = np.mean((model_ref.predict(X_train) - np.apply_along_axis(dynamics_func, 1, X_train.squeeze())) ** 2)
+            test_error = np.mean((model_ref.predict(X_test) - np.apply_along_axis(dynamics_func, 1, X_test.squeeze())) ** 2)
 
             train_error_all.append(training_error)
             test_error_all.append(test_error)
@@ -720,6 +736,10 @@ if 4 in EXPERIMENTS_TO_RUN:
                 n_corr_dim = n_dim,
                 n_uncorr_dim = N_UNCORRELATED_DIMS,
                 theta_ref=float(THETA_REF),
+                train_mse = float(np.mean(train_mse_all)),
+                train_mse_std = float(np.std(train_mse_all)),
+                test_mse = float(np.mean(test_mse_all)),
+                test_mse_std = float(np.std(test_mse_all)),
                 train_error = float(np.mean(train_error_all)),
                 train_error_std = float(np.std(train_error_all)),
                 test_error = float(np.mean(test_error_all)),
@@ -753,6 +773,36 @@ if 4 in EXPERIMENTS_TO_RUN:
 
     for k, r in data_json["results"].items():
         dims.append(r["n_corr_dim"])
+        train_error.append(r["train_mse"])
+        train_error_std.append(r["train_mse_std"])
+        test_error.append(r["test_mse"])
+        test_error_std.append(r["test_mse_std"])
+
+    ci_train = [1.96*s/np.sqrt(N_REPEAT) for s in train_error_std]
+    ci_test = [1.96*s/np.sqrt(N_REPEAT) for s in test_error_std]
+
+    plt.figure()
+    plt.errorbar(dims, train_error, ci_train, marker="*")
+    plt.errorbar(dims, test_error, ci_test, marker="*")
+    plt.xlabel("Number of dimensions")
+    plt.ylabel("MSE at $\\theta_{ref}$")
+    plt.legend(["Train MSE", "Test MSE"])
+    plt.title("MSE vs dim")
+
+    savepath = data_json["run_path"].joinpath("figures").joinpath("mse_at_ref" + ".png")
+
+    plt.savefig(savepath)  
+
+    ### Plot Error
+    dims = []
+    train_error = []
+    train_error_std = []
+    test_error = []
+    test_error_std = []
+
+
+    for k, r in data_json["results"].items():
+        dims.append(r["n_corr_dim"])
         train_error.append(r["train_error"])
         train_error_std.append(r["train_error_std"])
         test_error.append(r["test_error"])
@@ -760,14 +810,16 @@ if 4 in EXPERIMENTS_TO_RUN:
 
     ci_train = [1.96*s/np.sqrt(N_REPEAT) for s in train_error_std]
     ci_test = [1.96*s/np.sqrt(N_REPEAT) for s in test_error_std]
+
     plt.figure()
     plt.errorbar(dims, train_error, ci_train, marker="*")
     plt.errorbar(dims, test_error, ci_test, marker="*")
     plt.xlabel("Number of dimensions")
     plt.ylabel("MSE at $\\theta_{ref}$")
     plt.legend(["Train Error", "Test Error"])
+    plt.title("Error vs dimension")
 
-    savepath = data_json["run_path"].joinpath("figures").joinpath("mse_at_ref" + ".png")
+    savepath = data_json["run_path"].joinpath("figures").joinpath("error_at_ref" + ".png")
 
     plt.savefig(savepath)  
 
