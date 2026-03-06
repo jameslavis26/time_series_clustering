@@ -96,7 +96,12 @@ class EigenGausRascutti:
         """
         Solve the SOCP for a single output dimension.
         """
-        N, d = X.shape
+        if len(X.shape) == 1:
+            N = X.shape[0]
+            d = 1
+        else:
+            N = X.shape[0]
+            d = X.shape[-1]
 
         # Mercer feature blocks
         Q_k = eigenvectors[:, :, :eigen_K]   # (d, N, K)
@@ -161,7 +166,7 @@ class EigenGausRascutti:
         """
         Fit model to inputs X and outputs Y.
         """
-        N, d = X.shape
+        N = X.shape[0]
         Y = np.atleast_2d(Y)
 
         self.y_shift = np.mean(Y, axis=0)
@@ -177,7 +182,7 @@ class EigenGausRascutti:
             [self.gaussian_eigen.eigenfunction(k)(X)
              for k in range(self.eigen_K)],
             axis=2
-        ).transpose(1, 0, 2) / np.sqrt(N)
+        ).squeeze().transpose(1, 0, 2) / np.sqrt(N)
 
         betas = [
             self._fit_rascutti(

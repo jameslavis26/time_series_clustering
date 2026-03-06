@@ -37,7 +37,7 @@ class RascuttiModelSingleTarget:
         if len(X.shape) == 1:
             if type(self.kernels) == list:
                 raise Exception("The number of kernels must match the dimension of X")
-        elif type(self.kernels) == list and x.shape[-1] != len(self.kernels):    
+        elif type(self.kernels) == list and X.shape[-1] != len(self.kernels):    
             raise Exception("The number of kernels must match the dimension of X")
 
         # Record dimension of inputs
