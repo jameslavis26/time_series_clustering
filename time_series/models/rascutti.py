@@ -81,7 +81,6 @@ class RascuttiModelSingleTarget:
 
         self.alphas = [alphas[j].value for j in range(self.dimension_x)]
 
-
     def predict(self, X):
         # Check input dimension is the same as training data
         dimension_x = 1 if len(X.shape) == 1 else X.shape[-1]
@@ -94,6 +93,9 @@ class RascuttiModelSingleTarget:
             kernels = [self.kernels(X[..., j], self.x_train[..., j]) for j in range(self.dimension_x)]
 
         return np.sum([kernels[j]@self.alphas[j] for j in range(self.dimension_x)], axis=0) + self.mean_y   
+    
+    # def inner_product(self, other):
+        
     
 class RascuttiModel:
     def __init__(self, 
@@ -161,4 +163,7 @@ class RascuttiModel:
         else:
             result = [model.predict(X) for model in self.dimension_models]
         return np.array(result).T
+        
+    # def inner_product(self, other):
+
         
