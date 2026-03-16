@@ -90,7 +90,8 @@ class EigenRascuttiSingleTarget:
             for k in range(self.eigen_K)
         ]) * N
 
-        D_inv_sqrt = np.sqrt(np.linalg.inv(D))
+        self.D_inv = np.linalg.inv(D) # Stored for later use
+        D_inv_sqrt = np.sqrt(self.D_inv)
 
 
         Q_k = np.stack(
@@ -161,7 +162,14 @@ class EigenRascuttiSingleTarget:
         fits = [Q_k[j]@self.betas[j] for j in range(dimension_x)]
 
         return np.sum(fits, axis=0) + self.y_shift
-        
+    
+    def inner_product(self, other):
+        ip = 0
+        for j in range(len(self.betas)):
+            for j_prime in range(len(other.betas)):
+                ip += self.betas[j].T @ self.D_inv @ other.betas[j_prime]
+        return ip
+                
 
 class EigenRascuttiModel:
     def __init__(self, 
@@ -210,3 +218,9 @@ class EigenRascuttiModel:
         else:
             result = [model.predict(X) for model in self.dimension_models]
         return np.array(result).T
+
+    def inner_product(self, other):
+        ip = 0
+        for j in range(len(self.dimension_models)):
+            ip += self.dimension_models[j].inner_product(other.dimension_models[j])
+        return ip

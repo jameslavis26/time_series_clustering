@@ -1,0 +1,15 @@
+{
+  "seed": 0,
+  "n_points": 500,
+  "theta_ref": 1.57075,
+  "noise": 0.0,
+  "n_correlated_dims": 3,
+  "n_uncorrelated_dims": 0,
+  "n_repeat": 1,
+  "n_trials": 30,
+  "theta_min": 0,
+  "theta_max": 3.1415,
+  "n_thetas": 20,
+  "name": "EigenTest",
+  "model": "EigenRascuttiModel"
+}
