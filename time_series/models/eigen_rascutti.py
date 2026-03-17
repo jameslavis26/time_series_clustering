@@ -55,172 +55,162 @@ class GaussianEigenfunctions:
             )
 
         return phi
+    
+class SOCPProblem:
+    def __init__(self, N, d, eigen_K):
+        self.key = (N, d, eigen_K)
 
-class EigenRascuttiSingleTarget:
-    def __init__(
-        self,
-        bandwidth,
-        lam = 1e-9,
-        rho = 1e-9,
-        eigen_K = 10
-    ):
-        self.bandwidth = float(bandwidth)
-        self.eigen_K = int(eigen_K)
-        self.lam = float(lam)
-        self.rho = float(rho)
+        self._build_problem(N, eigen_K, d)
 
-        self.gaussian_eigen = GaussianEigenfunctions(self.bandwidth)
+    def _build_problem(self, N, eigen_K, d):
+        # Parameters
+        Dinvsqroot = cp.Parameter((eigen_K, eigen_K))
+        y = cp.Parameter(N)
+        Q_k = [cp.Parameter((N, eigen_K)) for j in range(d)]
+        # Q_k = cp.Parameter((d, N, eigen_K))
+        lam = cp.Parameter(nonneg=True)
+        rho = cp.Parameter(nonneg=True)
 
-    def fit(self, X, y):
-        # Ensure yt is 1 dimensional
-        if len(y.shape) != 1:
-            raise Exception("EigenRascuttiSingleTarget: y can only have one dimension")
-        
-        # Record dimension of inputs
-        dimension_x = 1 if len(X.shape) == 1 else X.shape[-1]
-        N = X.shape[0]
-
-        self.X_train = X.squeeze()
-        self.y_shift = np.mean(y, axis=0)
-        y_centered = y - self.y_shift
-
-        # Mercer eigenpairs
-        D = np.diag([
-            self.gaussian_eigen.eigenvalue(k)
-            for k in range(self.eigen_K)
-        ]) * N
-
-        self.D_inv = np.linalg.inv(D) # Stored for later use
-        D_inv_sqrt = np.sqrt(self.D_inv)
-
-
-        Q_k = np.stack(
-            [self.gaussian_eigen.eigenfunction(k)(X)
-             for k in range(self.eigen_K)],
-            axis=2
-        ).squeeze().transpose(2, 0, 1) / np.sqrt(N) # d, N, k
-
-        # Optimisation variables
-        betas = [cp.Variable(self.eigen_K) for _ in range(dimension_x)]
+        # Variables
+        betas = [cp.Variable(eigen_K) for j in range(d)]
         t = cp.Variable()
-        u = [cp.Variable(nonneg=True) for _ in range(dimension_x)]
-        v = [cp.Variable(nonneg=True) for _ in range(dimension_x)]
+        u = [cp.Variable() for j in range(d)]
+        v = [cp.Variable() for j in range(d)]
 
-        constraints = []
+        Q_sum = cp.sum([Q_k[j]@betas[j] for j in range(d)], axis=0)
 
-        for j in range(dimension_x):
-            constraints.append(
-                cp.SOC(
-                    1 / np.sqrt(2) * (1.5),
-                    cp.hstack([
-                        1 / np.sqrt(2) * (-0.5),
-                        D_inv_sqrt @ betas[j],
-                    ])
-                )
-            )
-            constraints.append(cp.SOC(v[j], betas[j]))
-            constraints.append(cp.SOC(u[j], D_inv_sqrt @ betas[j]))
-
-        Q_sum = cp.sum(
-            [Q_k[j]@ betas[j] for j in range(dimension_x)],
-            axis=0
-        )
-
-        constraints += [
-            cp.SOC(
-                np.sqrt(2) * (t + 0.5) / 2,
-                cp.hstack([
-                    np.sqrt(2) * (t - 0.5) / 2,
-                    y - Q_sum,
-                ])
-            )
+        socp_constraints = [
+            *[cp.SOC(1/np.sqrt(2) * (0.5 + 1), cp.hstack([1/np.sqrt(2) * (0.5 - 1), Dinvsqroot@betas[j]])) for j in range(d)],
+            *[cp.SOC(v[j], betas[j]) for j in range(d)],
+            *[cp.SOC(u[j], Dinvsqroot@betas[j]) for j in range(d)],
+            cp.SOC(np.sqrt(2)*(t + 0.5)/2, cp.hstack([np.sqrt(2)*(t - 0.5)/2, y - Q_sum]))
         ]
 
-        objective = cp.Minimize(
-            (1 / (2 * N)) * t
-            + (self.lam / np.sqrt(N)) * cp.sum(v)
-            + self.rho * cp.sum(u)
+        sum_v = cp.Variable(nonneg=True)  # scalar surrogate
+        sum_u = cp.Variable(nonneg=True)
+
+        socp_constraints += [sum_v == cp.sum(v)]
+        socp_constraints += [sum_u == cp.sum(u)]
+
+        prob = cp.Problem(
+            cp.Minimize(1/(2*N) * t + lam  * sum_v + rho * sum_u),            
+            socp_constraints
         )
 
-
-        prob = cp.Problem(objective, constraints)
-        prob.solve(solver=cp.SCS, verbose=False)
-
-        self.betas = [b.value for b in betas]        
-
-    def predict(self, X):
-        # Record dimension of inputs
-        dimension_x = 1 if len(X.shape) == 1 else X.shape[-1]
-        N = X.shape[0]
-
-        Q_k = np.stack(
-            [self.gaussian_eigen.eigenfunction(k)(X)
-             for k in range(self.eigen_K)],
-            axis=2
-        ).squeeze().transpose(2, 0, 1) / np.sqrt(N) # d, N, k
-
-        fits = [Q_k[j]@self.betas[j] for j in range(dimension_x)]
-
-        return np.sum(fits, axis=0) + self.y_shift
+        self._Dinvsqroot = Dinvsqroot
+        self._y = y
+        self._Q_k = Q_k
+        self._lam = lam
+        self._rho = rho
+        self._betas = betas
+        self._prob = prob
     
-    def inner_product(self, other):
-        ip = 0
-        for j in range(len(self.betas)):
-            for j_prime in range(len(other.betas)):
-                ip += self.betas[j].T @ self.D_inv @ other.betas[j_prime]
-        return ip
-                
-
-class EigenRascuttiModel:
-    def __init__(self, 
-        bandwidth,
-        lam:float=1e-9, 
-        rho:float=1e-9, 
-        **kwargs
+    def solve_problem(self,
+        Dinvsqroot,
+        y,
+        Q_k,
+        lam,
+        rho,            
     ):
+        self._Dinvsqroot.value = Dinvsqroot
+        self._y.value = y
+        self._lam.value = lam
+        self._rho.value = rho
+
+        for j in range(len(self._Q_k)):
+            self._Q_k[j].value = Q_k[j]
+
+        try:
+            self._prob.solve(solver=cp.CLARABEL)
+        except:
+            self._prob.solve(solver=cp.SCS, warm_start=False)
+
+        return self._betas
+    
+class EigenGausRascutti:
+    _problem_cache = {}
+
+    def __init__(self, bandwidth, lam=0, rho=0, eigen_K = 10, problem_cache=None):
         self.bandwidth = bandwidth
+        self.eigen_K = eigen_K
         self.lam = lam
         self.rho = rho
+        self.gaussian_eigen = GaussianEigenfunctions(bandwidth)               
 
-    def fit(self, X, y):
+    def _fit_rascutti(self, X, y, eigenvalues, eigenvectors, eigen_K, lam, rho):
+        N, d = X.shape
+
+        key = (N, d, eigen_K)
+        if key not in EigenGausRascutti._problem_cache:
+            solver = SOCPProblem(N, d, eigen_K)
+            EigenGausRascutti._problem_cache[key] = solver
+
+        solver = EigenGausRascutti._problem_cache[key]
+
+        Q_mercer_k = eigenvectors[:, :, :eigen_K] #[dim, N, k]
+        Q_k = Q_mercer_k 
+        D = np.diag(eigenvalues[:eigen_K])
+        Dinvsqroot = np.sqrt(np.linalg.inv(D))
+
+        betas = solver.solve_problem(
+            Dinvsqroot=Dinvsqroot,
+            y=y,
+            Q_k=Q_k,
+            lam=lam,
+            rho=rho, 
+        )
+
+        return betas
+
+    def fit(self, X, Y):
         if len(X.shape) == 1:
-            N = X.shape[0]
-            self.dimension_x = 1
+            N = len(X)
+            d = 1
         else:
             N = X.shape[0]
-            self.dimension_x = X.shape[-1]
+            d = X.shape[-1]
 
-        if len(y.shape) == 1:
-            self.dimension_y = 1
-        else:
-            self.dimension_y = y.shape[-1]
+        self.y_shift = np.mean(Y, axis=0)
 
-        self.x_train = X
+        y_centered = Y - self.y_shift
 
-        if self.dimension_y == 1:
-            y = y[:, np.newaxis]
+        mercer_eigenvalues = np.array([self.gaussian_eigen.eigenvalue(k) for k in range(self.eigen_K)])
+        mercer_eigenvectors = np.stack([self.gaussian_eigen.eigenfunction(k)(X) for k in range(self.eigen_K)], axis=2).transpose(1, 0, 2)
 
-        self.dimension_models = []
-        for d in range(self.dimension_y):
-            model_d = EigenRascuttiSingleTarget(
-                bandwidth=self.bandwidth,
-                lam=self.lam,
-                rho=self.rho,
-            )
-            model_d.fit(X, y[:, d])
-            self.dimension_models.append(
-                model_d
-            ) 
-    
+        eigenvalues = mercer_eigenvalues*N
+        eigenvectors = mercer_eigenvectors/np.sqrt(N)
+
+        betas = [
+            self._fit_rascutti(
+                X, 
+                y_centered[:, i], 
+                eigenvalues=eigenvalues, 
+                eigenvectors=eigenvectors,
+                eigen_K=self.eigen_K,
+                lam = self.lam,
+                rho = self.rho
+            ) for i in range(Y.shape[1])
+        ]
+
+        self.beta = np.stack([np.vstack([b.value for b in betas[j]]).T for j in range(len(betas))])
+
     def predict(self, X):
-        if self.dimension_y == 1:
-            result = [model.predict(X) for model in self.dimension_models][0]
-        else:
-            result = [model.predict(X) for model in self.dimension_models]
-        return np.array(result).T
+        N, d= X.shape
+        mercer_eigenvectors = np.stack([self.gaussian_eigen.eigenfunction(k)(X) for k in range(self.eigen_K)], axis=2).transpose(1, 0, 2)
+        eigenvectors = mercer_eigenvectors/np.sqrt(N)
 
+        Q_k = eigenvectors
+        fits = np.einsum("vdf,tfv->dt", Q_k, self.beta) + self.y_shift
+        return fits
+    
     def inner_product(self, other):
-        ip = 0
-        for j in range(len(self.dimension_models)):
-            ip += self.dimension_models[j].inner_product(other.dimension_models[j])
+        mercer_eigenvalues = np.array([self.gaussian_eigen.eigenvalue(k) for k in range(self.eigen_K)])
+        D = np.diag(mercer_eigenvalues[:self.eigen_K])
+        D_inv = np.linalg.inv(D)
+        
+        # Matrix multiplication over dimensions. 
+        ip = np.einsum("ilj,ll,ilp->", self.beta, D_inv, other.beta)
+
         return ip
+
+

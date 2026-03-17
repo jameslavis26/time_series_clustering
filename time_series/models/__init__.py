@@ -1,4 +1,4 @@
 from .kernel_ridge_regression import KernelRidgeRegression
 from .moving_average import MovingAverageEstimator
 from .rascutti import RascuttiModel
-from .eigen_rascutti import EigenRascuttiModel
+from .eigen_rascutti import EigenGausRascutti

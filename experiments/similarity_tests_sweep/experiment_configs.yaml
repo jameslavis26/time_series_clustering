@@ -8,7 +8,7 @@ default_values:
   n_uncorrelated_dims: 0
 
   # experiment configs
-  n_repeat: 1
+  n_repeat: 100
   n_trials: 30
 
   # Sweep bounds
@@ -36,7 +36,7 @@ models:
           max: 1e-4
 
   eigen_rascutti:
-    model_name: EigenRascuttiModel
+    model_name: EigenGausRascutti
     parameters:
       bandwidth: 1
       lam: 1e-9
@@ -46,7 +46,7 @@ models:
         bandwidth:
           type: float
           min: 0.1
-          max: 10
+          max: 8
       owned:
         lam:
           type: float
@@ -65,7 +65,7 @@ experiments:
         type: float
         min: 0
         max: 2
-        n_steps: 2
+        n_steps: 10
     model: eigen_rascutti
 
   # experiment1:

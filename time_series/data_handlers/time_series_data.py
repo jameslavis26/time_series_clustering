@@ -30,7 +30,7 @@ class TimeSeriesData:
         self.dataset_name = dataset_name if dataset_name else ""
         self.parameters = parameters if parameters else {}
 
-    def train_data(self, lag=None):
+    def train_data(self, lag=None, squeeze=False):
         if not lag:
             lag = self.lag
 
@@ -41,9 +41,12 @@ class TimeSeriesData:
         if type(self.y) == type(None):
             return self.X[self.train_idx], None
 
-        return to_lagged_time_series(self.X[self.train_idx], self.y[self.train_idx], lag)
+        X, y = to_lagged_time_series(self.X[self.train_idx], self.y[self.train_idx], lag)
+        if squeeze:
+            return X.squeeze(), y.squeeze()
+        return X, y
 
-    def val_data(self, lag=None):
+    def val_data(self, lag=None, squeeze=False):
         if not lag:
             lag = self.lag
 
@@ -54,9 +57,12 @@ class TimeSeriesData:
         if type(self.y) == type(None):
             return self.X[self.val_idx], None
 
-        return to_lagged_time_series(self.X[self.val_idx], self.y[self.val_idx], lag)
-
-    def test_data(self, lag=None):
+        X, y = to_lagged_time_series(self.X[self.val_idx], self.y[self.val_idx], lag)
+        if squeeze:
+            return X.squeeze(), y.squeeze()
+        return X, y
+    
+    def test_data(self, lag=None, squeeze=False):
         if not lag:
             lag = self.lag
 
@@ -67,13 +73,19 @@ class TimeSeriesData:
         if type(self.y) == type(None):
             return self.X[self.test_idx], None
 
-        return to_lagged_time_series(self.X[self.test_idx], self.y[self.test_idx], lag)
+        X, y = to_lagged_time_series(self.X[self.test_idx], self.y[self.test_idx], lag)
+        if squeeze:
+            return X.squeeze(), y.squeeze()
+        return X, y
     
-    def full_data(self, lag=None):
+    def full_data(self, lag=None, squeeze=False):
         if not lag:
             lag = self.lag
             
-        return to_lagged_time_series(self.X, self.y, lag)
+        X, y = to_lagged_time_series(self.X, self.y, lag)
+        if squeeze:
+            return X.squeeze(), y.squeeze()
+        return X, y
     
     def drop_data(self):
         self.X = None
