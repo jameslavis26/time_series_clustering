@@ -58,15 +58,15 @@ models:
           max: 1e-4
 
 experiments:
- experiment1_eigen:
-    name: EigenTest
-    sweeps:
-      noise:
-        type: float
-        min: 0
-        max: 2
-        n_steps: 10
-    model: eigen_rascutti
+#  experiment1_eigen:
+#     name: EigenTest
+#     sweeps:
+#       noise:
+#         type: float
+#         min: 0
+#         max: 2
+#         n_steps: 10
+#     model: eigen_rascutti
 
   # experiment1:
   #   name: Similarity vs Noise
@@ -108,44 +108,44 @@ experiments:
   #       step: 100
   #   model: krr_model
 
-  # experiment1_eigen:
-  #   name: Similarity vs Noise
-  #   sweeps:
-  #     noise:
-  #       type: float
-  #       min: 0
-  #       max: 2
-  #       n_steps: 20
-  #   model: eigen_rascutti
+  experiment1_eigen:
+    name: Similarity vs Noise
+    sweeps:
+      noise:
+        type: float
+        min: 0
+        max: 2
+        n_steps: 20
+    model: eigen_rascutti
 
-  # experiment2_eigen:
-  #   name: Similarity vs Correlated Dim
-  #   sweeps:
-  #     n_correlated_dims:
-  #       type: int
-  #       min: 2
-  #       max: 10
-  #       step: 1
-  #   model: eigen_rascutti
+  experiment2_eigen:
+    name: Similarity vs Correlated Dim
+    sweeps:
+      n_correlated_dims:
+        type: int
+        min: 2
+        max: 10
+        step: 1
+    model: eigen_rascutti
 
-  # experiment3_eigen:
-  #   name: Similarity vs Uncorrelated Dim
-  #   sweeps:
-  #     n_uncorrelated_dims:
-  #       type: int
-  #       min: 0
-  #       max: 10
-  #       step: 1
-  #   model: eigen_rascutti
+  experiment3_eigen:
+    name: Similarity vs Uncorrelated Dim
+    sweeps:
+      n_uncorrelated_dims:
+        type: int
+        min: 0
+        max: 10
+        step: 1
+    model: eigen_rascutti
 
-  # experiment5_eigen:
-  #   name: Similarity vs Npoints
-  #   sweeps:
-  #     n_points:
-  #       type: int
-  #       min: 100
-  #       max: 1000
-  #       step: 100
-  #   model: eigen_rascutti
+  experiment5_eigen:
+    name: Similarity vs Npoints
+    sweeps:
+      n_points:
+        type: int
+        min: 100
+        max: 1000
+        step: 100
+    model: eigen_rascutti
 
   

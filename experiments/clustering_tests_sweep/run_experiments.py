@@ -828,7 +828,7 @@ if 4 in EXPERIMENTS_TO_RUN:
 # EXPERIMENT 5: mse vs n_dimensions
 # ============================================================
 if 5 in EXPERIMENTS_TO_RUN:
-    print("Running Experiment 4")
+    print("Running Experiment 5")
     EXP_NAME = "MSE vs n points - KRR - Tune All"
     experiment = Experiment(
         EXP_NAME,
@@ -855,7 +855,7 @@ if 5 in EXPERIMENTS_TO_RUN:
             # reference
             dynamics_func = dynamics_sincos(
                 THETA_REF,
-                n_correlated_dimensions=n_dim,
+                n_correlated_dimensions=N_CORRELATED_DIMS,
                 n_uncorrelated_dimensions=N_UNCORRELATED_DIMS,
             )
 
@@ -917,7 +917,7 @@ if 5 in EXPERIMENTS_TO_RUN:
             test_error_all.append(test_error)
 
         experiment.add_result(
-            **{f"theta_sweep_n_{n_dim:.3f}": dict(
+            **{f"theta_sweep_n_{n_points:.3f}": dict(
                 noise=float(NOISE),
                 n_points = n_points,
                 n_uncorr_dim = N_UNCORRELATED_DIMS,
